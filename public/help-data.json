@@ -1,0 +1,114 @@
+{
+  "categories": [
+    {
+      "id": "funktionen",
+      "title": "Funktionen",
+      "icon": "📄",
+      "description": "Erkunde die Möglichkeiten von OrdoServus",
+      "articles": [
+        {
+          "id": "liturgie-editor",
+          "title": "Liturgie-Editor",
+          "content": "Mit dem Editor kannst du Abläufe für Gottesdienste, Taufen oder Hochzeiten erstellen. Nutze Bausteine, um Struktur in deine Vorbereitung zu bringen."
+        },
+        {
+          "id": "ordo-files",
+          "title": "Das .ordo Format",
+          "content": "OrdoServus nutzt ein eigenes Dateiformat (.ordo). Damit kannst du Entwürfe exportieren, sicher auf deinem PC speichern oder per E-Mail an Kollegen verschicken, ohne dass die Formatierung verloren geht."
+        },
+        {
+          "id": "cloud-sync",
+          "title": "Cloud-Synchronisation",
+          "content": "Dank der Supabase-Anbindung kannst du deine Dokumente in der Cloud speichern. So hast du im Pfarrbüro am PC und in der Sakristei auf dem Tablet immer den gleichen Stand."
+        },
+        {
+          "id": "notizbuch",
+          "title": "Digitales Notizbuch",
+          "content": "Neben Gottesdiensten kannst du auch freie Notizen für Predigtgedanken, Sitzungsprotokolle oder seelsorgliche Gespräche anlegen."
+        }
+      ]
+    },
+    {
+      "id": "faq",
+      "title": "F.A.Q.",
+      "icon": "❓",
+      "description": "Häufig gestellte Fragen",
+      "articles": [
+        {
+          "id": "daten-weg",
+          "title": "Wo werden meine Daten gespeichert?",
+          "content": "Standardmäßig werden deine Daten nur lokal in deinem Browser gespeichert. Wenn du dich einloggst, werden sie sicher in deiner privaten Cloud (Supabase) synchronisiert."
+        },
+        {
+          "id": "offline-nutzung",
+          "title": "Kann ich OrdoServus offline nutzen?",
+          "content": "Ja! Da OrdoServus eine moderne Web-App ist, kannst du sie im Browser öffnen und auch ohne Internetverbindung an deinen Entwürfen weiterarbeiten."
+        },
+        {
+          "id": "account-loeschen",
+          "title": "Wie lösche ich meine Cloud-Daten?",
+          "content": "In den Einstellungen kannst du dein Cloud-Profil verwalten. Wenn du den Account löschst, werden alle synchronisierten Dokumente unwiderruflich von den Servern entfernt."
+        },
+        {
+          "id": "magic-link",
+          "title": "Was ist ein Magic Link?",
+          "content": "Wir nutzen keine Passwörter. Du gibst deine E-Mail ein und erhältst einen sicheren Link. Ein Klick genügt, und du bist eingeloggt. Das ist sicherer und bequemer."
+        }
+      ]
+    },
+    {
+      "id": "community",
+      "title": "Gemeinschaft",
+      "icon": "🤝",
+      "description": "Zusammenarbeit und Austausch",
+      "articles": [
+        {
+          "id": "vorlagen-teilen",
+          "title": "Vorlagen teilen",
+          "content": "Du hast einen besonders schönen Ablauf für eine Erstkommunion erstellt? Exportiere ihn als .ordo-Datei und sende ihn an Mitbrüder oder Kollegen – diese können ihn einfach importieren."
+        },
+        {
+          "id": "open-source",
+          "title": "Mitwirken am Projekt",
+          "content": "OrdoServus ist Open Source. Wenn du Ideen für neue Funktionen hast oder einen Fehler findest, kannst du dies auf GitHub melden oder selbst zur Entwicklung beitragen."
+        }
+      ]
+    },
+    {
+      "id": "sicherheit",
+      "title": "Datenschutz",
+      "icon": "🔒",
+      "description": "Sicherheit und Vertraulichkeit",
+      "articles": [
+        {
+          "id": "seelsorge-geheimnis",
+          "title": "Vertraulichkeit",
+          "content": "Wir wissen, wie sensibel pastorale Daten sind. OrdoServus liest keine Inhalte mit. Deine Predigten und Notizen sind durch moderne Verschlüsselung geschützt."
+        },
+        {
+          "id": "datenschutz-richtlinien",
+          "title": "DSGVO",
+          "content": "OrdoServus ist DSGVO-konform. Wir erfassen nur die minimal notwendigen Daten für den Login (E-Mail) und geben nichts an Dritte weiter."
+        }
+      ]
+    },
+    {
+      "id": "support",
+      "title": "Hilfe & Kontakt",
+      "icon": "🆘",
+      "description": "Support für OrdoServus",
+      "articles": [
+        {
+          "id": "fehler-melden",
+          "title": "Einen Fehler melden",
+          "content": "Sollte etwas nicht funktionieren, erstelle bitte ein 'Issue' auf GitHub oder schreibe uns eine E-Mail. Wir versuchen, technische Probleme schnellstmöglich zu lösen."
+        },
+        {
+          "id": "dokumentation",
+          "title": "Anleitungen",
+          "content": "Eine ausführliche Anleitung für die ersten Schritte findest du in unserem GitHub-Wiki oder direkt auf der Startseite unter 'Erste Schritte'."
+        }
+      ]
+    }
+  ]
+}
