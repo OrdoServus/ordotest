@@ -17,6 +17,7 @@ export default function InfoPage() {
           <a href="#ueber" style={navLink}>Über das Projekt</a>
           <Link href="/info/help" style={navLink}>Hilfe</Link>
           <Link href="/info/kontakt" style={navLink}>Kontakt</Link>
+          <Link href="/info/downloads" style={navLink}>Downloads</Link>
         </div>
       </nav>
 
