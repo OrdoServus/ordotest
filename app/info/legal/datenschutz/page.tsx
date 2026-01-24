@@ -136,7 +136,7 @@ export default function DatenschutzPage() {
             <p>
               Wir behalten uns vor, diese Datenschutzerklärung jederzeit anzupassen. 
               Es gilt die jeweils aktuelle Version, die in der Web‑Software abrufbar ist. <br/>
-              Letzte Aktualisierung: 14.01.2026
+              Letzte Aktualisierung: 01.01.2026
             </p>
           </div>
 

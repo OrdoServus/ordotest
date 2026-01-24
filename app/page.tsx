@@ -1,88 +1,114 @@
-"use client";
-import React, { useState, useEffect } from 'react';
+'use client';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from './AuthContext';
+import { useRouter } from 'next/navigation';
+import { db } from './login/firebaseClient'; // Import db instance
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+
 import Sidebar from './components/Sidebar';
 import Editor from './components/Editor';
 import Dashboard from './components/Dashboard';
 
 export default function Home() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [dokumente, setDokumente] = useState<any[]>([]);
   const [aktuelleId, setAktuelleId] = useState<string | null>(null);
-  const [isClient, setIsClient] = useState(false);
 
+  // Redirect if not logged in
   useEffect(() => {
-    setIsClient(true);
-    const daten = localStorage.getItem('ordoservus_v2');
-    if (daten) {
-      setDokumente(JSON.parse(daten));
+    if (!loading && !user) {
+      router.push('/info'); // Changed to /info
     }
-  }, []);
+  }, [user, loading, router]);
 
-  // Hilfsfunktion zum Speichern der gesamten Liste
-  const speichereAlles = (neueListe: any[]) => {
-    setDokumente(neueListe);
-    localStorage.setItem('ordoservus_v2', JSON.stringify(neueListe));
-  };
+  // Fetch data from Firestore in real-time
+  useEffect(() => {
+    if (user) {
+      const userDocsCollection = collection(db, 'users', user.uid, 'dokumente');
+      const q = query(userDocsCollection, orderBy('datum', 'desc')); // Order by date descending
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setDokumente(docs);
+      });
+
+      // Cleanup subscription on unmount
+      return () => unsubscribe();
+    } else {
+      setDokumente([]); // Clear data if user logs out
+    }
+  }, [user]);
 
   const aktuellesDoc = dokumente.find(d => d.id === aktuelleId);
 
-  const handleUpdate = (feld: 'titel' | 'inhalt', wert: string) => {
-    const neueListe = dokumente.map(d => 
-      d.id === aktuelleId ? { ...d, [feld]: wert } : d
-    );
-    speichereAlles(neueListe);
-  };
+  const handleUpdate = useCallback(async (feld: 'titel' | 'inhalt', wert: string) => {
+      if (!user || !aktuelleId) return;
+      const docRef = doc(db, 'users', user.uid, 'dokumente', aktuelleId);
+      await updateDoc(docRef, { [feld]: wert });
+  }, [user, aktuelleId]);
 
-  const erstelleNeues = () => {
+  const erstelleNeues = async () => {
+    if (!user) return;
+    const userDocsCollection = collection(db, 'users', user.uid, 'dokumente');
     const neu = {
-      id: Date.now().toString(),
       titel: 'Neuer Gottesdienst',
-      inhalt: '',
-      datum: new Date().toLocaleDateString(),
+      inhalt: '# Neuer Gottesdienst\n\nFügen Sie hier Ihren Inhalt ein.',
+      datum: serverTimestamp(),
       isFavorit: false,
       typ: 'gottesdienst'
     };
-    speichereAlles([neu, ...dokumente]);
-    setAktuelleId(neu.id);
+    const newDocRef = await addDoc(userDocsCollection, neu);
+    setAktuelleId(newDocRef.id);
   };
 
-  const handleLöschen = (id: string) => {
-    if (confirm("Möchten Sie diesen Dienst wirklich löschen?")) {
-      const neueListe = dokumente.filter(d => d.id !== id);
-      speichereAlles(neueListe);
+  const handleLöschen = async (id: string) => {
+    if (!user) return;
+    if (confirm("Möchten Sie diesen Dienst wirklich endgültig löschen?")) {
+      const docRef = doc(db, 'users', user.uid, 'dokumente', id);
+      await deleteDoc(docRef);
       if (aktuelleId === id) setAktuelleId(null);
     }
   };
 
-  const handleKopieren = (id: string) => {
-    const original = dokumente.find(d => d.id === id);
-    if (original) {
-      const kopie = { 
-        ...original, 
-        id: Date.now().toString(), 
+  const handleKopieren = async (id: string) => {
+    if (!user) return;
+    const docRef = doc(db, 'users', user.uid, 'dokumente', id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const original = docSnap.data();
+      const kopie = {
+        ...original,
         titel: `${original.titel} (Kopie)`,
-        datum: new Date().toLocaleDateString() 
+        datum: serverTimestamp()
       };
-      speichereAlles([kopie, ...dokumente]);
+      const userDocsCollection = collection(db, 'users', user.uid, 'dokumente');
+      await addDoc(userDocsCollection, kopie);
     }
   };
 
-  const handleFavorit = (id: string) => {
-    const neueListe = dokumente.map(d => 
-      d.id === id ? { ...d, isFavorit: !d.isFavorit } : d
-    );
-    speichereAlles(neueListe);
+  const handleFavorit = async (id: string) => {
+    if (!user) return;
+    const docRef = doc(db, 'users', user.uid, 'dokumente', id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        const currentFavStatus = docSnap.data().isFavorit;
+        await updateDoc(docRef, { isFavorit: !currentFavStatus });
+    }
   };
 
-  if (!isClient) return null;
+  if (loading || !user) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '2rem' }}>Lade App...</div>;
+  }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#fff' }}>
-      <Sidebar 
-        dokumente={dokumente} 
-        aktuelleId={aktuelleId} 
-        onWähleDokument={setAktuelleId} 
+    <div style={{ display: 'flex', height: 'calc(100vh - 50px)', backgroundColor: '#fff' }}>
+      <Sidebar
+        dokumente={dokumente}
+        aktuelleId={aktuelleId}
+        onWähleDokument={setAktuelleId}
         onNeu={erstelleNeues}
-        onLöschen={handleLöschen} 
+        onLöschen={handleLöschen}
         onKopieren={handleKopieren}
         onFavorit={handleFavorit}
       />
@@ -90,18 +116,19 @@ export default function Home() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {aktuelleId && aktuellesDoc ? (
           <Editor
+            key={aktuelleId}
             titel={aktuellesDoc.titel}
             inhalt={aktuellesDoc.inhalt}
             onTitelChange={(w) => handleUpdate('titel', w)}
             onInhaltChange={(w) => handleUpdate('inhalt', w)}
-            onSpeichern={() => {}}
+            onSpeichern={() => {}} // Pass empty function to satisfy prop requirement
             document={aktuellesDoc}
           />
         ) : (
-          <Dashboard 
-            dokumente={dokumente} 
-            onWähleDokument={setAktuelleId} 
-            onNeu={erstelleNeues} 
+          <Dashboard
+            dokumente={dokumente}
+            onWähleDokument={setAktuelleId}
+            onNeu={erstelleNeues}
           />
         )}
       </div>

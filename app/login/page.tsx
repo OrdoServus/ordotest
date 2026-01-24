@@ -1,128 +1,135 @@
-"use client";
-import { useState } from 'react';
-import { supabase } from './supabaseClient';
+'use client';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../AuthContext';
+import { useRouter } from 'next/navigation';
+import { auth } from './firebaseClient';
+import { sendSignInLinkToEmail } from "firebase/auth";
 import Link from 'next/link';
 
 export default function LoginPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/');
+    }
+  }, [user, authLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({ email });
+    setMessage('');
+    setError('');
 
-    if (error) alert(error.message);
-    else alert('Checken Sie Ihr E-Mail-Postfach für den Login-Link!');
+    const actionCodeSettings = {
+      url: `${window.location.origin}/`,
+      handleCodeInApp: true,
+    };
+
+    try {
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      window.localStorage.setItem('emailForSignIn', email);
+      setMessage('E-Mail versendet! Prüfen Sie Ihr Postfach (und den Spam-Ordner) für den Anmelde-Link.');
+    } catch (err: any) {
+      setError('Anmeldung fehlgeschlagen. Bitte prüfen Sie die E-Mail-Adresse und versuchen Sie es erneut.');
+      console.error(err);
+    }
     setLoading(false);
   };
 
-  return (
-    <>
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        .spinner {
-          animation: spin 1s linear infinite;
-        }
-      `}</style>
-      <div style={containerStyle}>
-        <div style={cardStyle}>
-          <div style={headerStyle}>
-            <div style={logoStyle}>⛪</div>
-            <h1 style={titleStyle}>Willkommen bei OrdoServus</h1>
-            <p style={subtitleStyle}>Melden Sie sich an, um Ihre liturgischen Dokumente zu verwalten</p>
-          </div>
+  if (authLoading || (!authLoading && user)) {
+    return <div style={containerStyle}>Lade...</div>;
+  }
 
-          <form onSubmit={handleLogin} style={formStyle}>
-            <div style={inputGroupStyle}>
-              <label style={labelStyle}>E-Mail-Adresse</label>
-              <input
-                type="email"
-                placeholder="ihre.email@beispiel.de"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={inputStyle}
-                required
-              />
+  return (
+    <div style={containerStyle}>
+        <div style={cardStyle}>
+            <div style={headerStyle}>
+                <div style={logoStyle}>⛪</div>
+                <h1 style={titleStyle}>Anmelden bei OrdoServus</h1>
+                <p style={subtitleStyle}>Geben Sie Ihre E-Mail ein, um einen sicheren Anmelde-Link zu erhalten.</p>
             </div>
 
-            <button type="submit" disabled={loading} style={btnStyle}>
-              {loading ? (
-                <span style={loadingStyle}>
-                  <div className="spinner" style={spinnerStyle}></div>
-                  Sende Magic Link...
-                </span>
-              ) : (
-                'Magic Link senden'
-              )}
-            </button>
-          </form>
+            {message && <p style={messageSuccessStyle}>{message}</p>}
+            {error && <p style={messageErrorStyle}>{error}</p>}
 
-          <div style={footerStyle}>
-            <p style={footerTextStyle}>
-              Kein Account? <Link href="/info" style={linkStyle}>Mehr erfahren</Link>
-            </p>
-          </div>
+            <form onSubmit={handleLogin}>
+                <div style={inputGroupStyle}>
+                    <label htmlFor="email" style={labelStyle}>E-Mail</label>
+                    <input
+                        id="email"
+                        type="email"
+                        placeholder="name@pfarrei.de"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        style={inputStyle}
+                        required
+                    />
+                </div>
+
+                <button type="submit" disabled={loading} style={btnStyle(loading)}>
+                    {loading ? 'Wird gesendet...' : 'Anmelde-Link anfordern'}
+                </button>
+            </form>
+
+            <div style={footerStyle}>
+                <p>Neu hier? <Link href="/info" style={linkStyle}>Erfahren Sie mehr über OrdoServus.</Link></p>
+            </div>
         </div>
-      </div>
-    </>
+    </div>
   );
 }
 
-// Styles
+// Modernes und sauberes Styling
 const containerStyle: React.CSSProperties = {
   minHeight: '100vh',
-  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  backgroundColor: '#f4f7f6', // Heller, neutraler Hintergrund
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  padding: '20px',
-  fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+  padding: '20px'
 };
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: 'white',
-  borderRadius: '20px',
-  boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-  padding: '40px',
+  borderRadius: '16px',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.07)',
+  padding: '48px',
   width: '100%',
-  maxWidth: '450px',
-  textAlign: 'center'
+  maxWidth: '480px'
 };
 
 const headerStyle: React.CSSProperties = {
-  marginBottom: '30px'
+  textAlign: 'center',
+  marginBottom: '32px'
 };
 
 const logoStyle: React.CSSProperties = {
-  fontSize: '4rem',
-  marginBottom: '15px'
+  fontSize: '3rem',
+  lineHeight: 1,
+  marginBottom: '16px'
 };
 
 const titleStyle: React.CSSProperties = {
-  fontSize: '2.2rem',
+  fontSize: '1.75rem',
   color: '#2c3e50',
-  margin: '0 0 10px 0',
-  fontWeight: '600'
+  fontWeight: '600',
+  margin: '0 0 8px 0'
 };
 
 const subtitleStyle: React.CSSProperties = {
   color: '#7f8c8d',
-  fontSize: '1.1rem',
-  margin: '0',
-  lineHeight: '1.5'
-};
-
-const formStyle: React.CSSProperties = {
-  marginBottom: '30px'
+  fontSize: '1rem',
+  margin: 0
 };
 
 const inputGroupStyle: React.CSSProperties = {
-  marginBottom: '25px',
-  textAlign: 'left'
+  marginBottom: '24px'
 };
 
 const labelStyle: React.CSSProperties = {
@@ -130,62 +137,64 @@ const labelStyle: React.CSSProperties = {
   marginBottom: '8px',
   color: '#2c3e50',
   fontWeight: '500',
-  fontSize: '0.95rem'
+  fontSize: '0.9rem'
 };
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  padding: '15px',
+  padding: '14px 16px',
   borderRadius: '10px',
-  border: '2px solid #e1e8ed',
+  border: '1px solid #dce1e6',
   fontSize: '1rem',
-  transition: 'border-color 0.3s ease',
-  boxSizing: 'border-box'
+  boxSizing: 'border-box',
+  transition: 'border-color 0.2s, box-shadow 0.2s'
 };
 
-const btnStyle: React.CSSProperties = {
+const btnStyle = (loading: boolean): React.CSSProperties => ({
   width: '100%',
-  padding: '15px',
+  padding: '16px',
   backgroundColor: '#2c3e50',
   color: 'white',
   border: 'none',
   borderRadius: '10px',
-  fontSize: '1.1rem',
+  fontSize: '1rem',
   fontWeight: '600',
-  cursor: 'pointer',
-  transition: 'background-color 0.3s ease',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center'
+  cursor: loading ? 'not-allowed' : 'pointer',
+  transition: 'background-color 0.2s, transform 0.2s',
+  opacity: loading ? 0.7 : 1
+});
+
+const messageBaseStyle: React.CSSProperties = {
+  padding: '12px',
+  margin: '0 0 20px 0',
+  borderRadius: '8px',
+  textAlign: 'center',
+  fontSize: '0.95rem'
 };
 
-const loadingStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px'
+const messageSuccessStyle: React.CSSProperties = {
+  ...messageBaseStyle,
+  backgroundColor: '#e8f5e9', // Grünlich
+  color: '#2e7d32'
 };
 
-const spinnerStyle: React.CSSProperties = {
-  width: '20px',
-  height: '20px',
-  border: '2px solid #ffffff',
-  borderTop: '2px solid transparent',
-  borderRadius: '50%'
+const messageErrorStyle: React.CSSProperties = {
+  ...messageBaseStyle,
+  backgroundColor: '#ffebee', // Rötlich
+  color: '#c62828'
 };
 
 const footerStyle: React.CSSProperties = {
-  borderTop: '1px solid #e1e8ed',
-  paddingTop: '20px'
-};
-
-const footerTextStyle: React.CSSProperties = {
-  color: '#7f8c8d',
-  fontSize: '0.95rem',
-  margin: '0'
+  marginTop: '32px',
+  paddingTop: '24px',
+  borderTop: '1px solid #e9ecef',
+  textAlign: 'center',
+  fontSize: '0.9rem',
+  color: '#7f8c8d'
 };
 
 const linkStyle: React.CSSProperties = {
-  color: '#667eea',
+  color: '#3498db',
   textDecoration: 'none',
   fontWeight: '500'
 };

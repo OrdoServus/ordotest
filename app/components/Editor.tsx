@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React from 'react';
 import { ordoFileService } from './ordoFileSystem';
 
@@ -214,7 +214,6 @@ const titelInputStyle: React.CSSProperties = {
   fontSize: '2.5rem',
   border: 'none',
   outline: 'none',
-  fontFamily: 'serif',
   marginBottom: '30px',
   color: '#2c3e50',
   fontWeight: 'bold'
@@ -225,7 +224,6 @@ const editorAreaStyle: React.CSSProperties = {
   outline: 'none',
   fontSize: '1.2rem',
   lineHeight: '1.7',
-  fontFamily: 'serif',
   color: '#333',
   textAlign: 'left'
 };
