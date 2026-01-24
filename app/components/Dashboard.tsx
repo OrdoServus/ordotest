@@ -3,12 +3,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function Dashboard({ onModusWechsel, onNeu, dokumente }: any) {
-  const [showLoginModal, setShowLoginModal] = useState(false);
-
-  useEffect(() => {
-    // Zeige das Modal beim ersten Laden
-    setShowLoginModal(true);
-  }, []);
 
   const liturgienCount = dokumente.filter((d: any) => d.typ === 'gottesdienst').length;
   const notizenCount = dokumente.filter((d: any) => d.typ === 'notizbuch').length;
@@ -64,33 +58,6 @@ export default function Dashboard({ onModusWechsel, onNeu, dokumente }: any) {
       <footer style={footerStyle}>
         <p>Zuletzt bearbeitet: {dokumente[0]?.titel || 'Keine Dokumente vorhanden'}</p>
       </footer>
-
-      {/* Login Modal */}
-      {showLoginModal && (
-        <div style={modalOverlayStyle}>
-          <div style={modalStyle}>
-            <button
-              onClick={() => setShowLoginModal(false)}
-              style={closeButtonStyle}
-            >
-              ×
-            </button>
-            <h2 style={modalTitleStyle}>Willkommen bei OrdoServus</h2>
-            <p style={modalTextStyle}>
-              Wir empfehlen Ihnen, sich anzumelden. Daher werden Ihre Daten sicher in der Cloud gespeichert und sind von überall zugänglich.
-            </p>
-            <Link href="/login" style={loginButtonStyle}>
-              Jetzt anmelden
-            </Link>
-            <button
-              onClick={() => setShowLoginModal(false)}
-              style={skipButtonStyle}
-            >
-              Später
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -140,73 +107,6 @@ const bannerStyle: React.CSSProperties = {
   textAlign: 'center',
   color: '#2c3e50',
   fontSize: '1rem'
-};
-
-const modalOverlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 1000
-};
-
-const modalStyle: React.CSSProperties = {
-  backgroundColor: 'white',
-  padding: '30px',
-  borderRadius: '15px',
-  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-  maxWidth: '400px',
-  width: '90%',
-  textAlign: 'center',
-  position: 'relative'
-};
-
-const closeButtonStyle: React.CSSProperties = {
-  position: 'absolute',
-  top: '10px',
-  right: '15px',
-  background: 'none',
-  border: 'none',
-  fontSize: '24px',
-  cursor: 'pointer',
-  color: '#666'
-};
-
-const modalTitleStyle: React.CSSProperties = {
-  fontSize: '1.8rem',
-  color: '#2c3e50',
-  marginBottom: '15px'
-};
-
-const modalTextStyle: React.CSSProperties = {
-  color: '#666',
-  lineHeight: '1.5',
-  marginBottom: '25px'
-};
-
-const loginButtonStyle: React.CSSProperties = {
-  display: 'inline-block',
-  backgroundColor: '#2c3e50',
-  color: 'white',
-  padding: '12px 24px',
-  borderRadius: '8px',
-  textDecoration: 'none',
-  fontWeight: 'bold',
-  marginBottom: '15px'
-};
-
-const skipButtonStyle: React.CSSProperties = {
-  background: 'none',
-  border: '1px solid #ccc',
-  padding: '10px 20px',
-  borderRadius: '8px',
-  cursor: 'pointer',
-  color: '#666'
 };
 
 const headerContentStyle: React.CSSProperties = {
