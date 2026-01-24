@@ -17,13 +17,13 @@ export default function DatenschutzPage() {
               1. Verantwortliche Stelle
             </h2>
             <p>
-              Katholische Kirche [Name der Kirchgemeinde oder Organisation] <br />
-              [Strasse und Hausnummer] <br />
-              [PLZ und Ort] <br />
+              [BITTE HIER IHREN NAMEN ODER DEN NAMEN DER ORGANISATION EINTRAGEN] <br />
+              [BITTE HIER IHRE STRASSE UND HAUSNUMMER EINTRAGEN] <br />
+              [BITTE HIER IHRE PLZ UND DEN ORT EINTRAGEN] <br />
               Schweiz
             </p>
             <p className="mt-2">
-              E‑Mail: florian@my.mail.ch
+              E‑Mail: [BITTE HIER IHRE KONTAKT-E-MAIL EINTRAGEN]
             </p>
           </div>
 

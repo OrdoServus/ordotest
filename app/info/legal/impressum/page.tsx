@@ -17,14 +17,14 @@ export default function ImpressumPage() {
               Verantwortliche Stelle
             </h2>
             <p>
-              Katholische Kirche [Name der Kirchgemeinde oder Organisation] <br />
-              [Strasse und Hausnummer] <br />
-              [PLZ und Ort] <br />
+              [BITTE HIER IHREN NAMEN ODER DEN NAMEN DER ORGANISATION EINTRAGEN] <br />
+              [BITTE HIER IHRE STRASSE UND HAUSNUMMER EINTRAGEN] <br />
+              [BITTE HIER IHRE PLZ UND DEN ORT EINTRAGEN] <br />
               Schweiz
             </p>
             <p className="mt-2">
-              E‑Mail: florian@my.mail.ch <br />
-              Website: [Domain der Web‑Software]
+              E‑Mail: [BITTE HIER IHRE KONTAKT-E-MAIL EINTRAGEN] <br />
+              Website: [BITTE HIER DIE DOMAIN DER WEB-SOFTWARE EINTRAGEN]
             </p>
           </div>
 
@@ -33,8 +33,8 @@ export default function ImpressumPage() {
               Vertretungsberechtigte Person
             </h2>
             <p>
-              [Name der verantwortlichen Person] <br />
-              Funktion: [z. B. Pfarrer, Kirchenverwaltungsratspräsident, IT‑Leitung]
+              [BITTE HIER DEN NAMEN DER VERANTWORTLICHEN PERSON EINTRAGEN] <br />
+              Funktion: [BITTE HIER DIE FUNKTION EINTRAGEN, z.B. Pfarrer, IT-Leitung]
             </p>
           </div>
 
@@ -44,7 +44,7 @@ export default function ImpressumPage() {
             </h2>
             <p>
               Die Inhalte dieser Web‑Software werden mit grösstmöglicher Sorgfalt erstellt. 
-              Dennoch übernimmt die katholische Kirche [Name] keine Gewähr für die 
+              Dennoch übernimmt die verantwortliche Stelle keine Gewähr für die 
               Richtigkeit, Vollständigkeit oder Aktualität der bereitgestellten Informationen.
             </p>
             <p className="mt-2">
@@ -73,8 +73,7 @@ export default function ImpressumPage() {
             <p>
               Die Inhalte, Strukturen und der Quellcode dieser Web‑Software sind 
               urheberrechtlich geschützt. Jede Verwendung ausserhalb der engen Grenzen 
-              des Urheberrechts bedarf der schriftlichen Zustimmung der katholischen 
-              Kirche [Name].
+              des Urheberrechts bedarf der schriftlichen Zustimmung der verantwortlichen Stelle.
             </p>
           </div>
 

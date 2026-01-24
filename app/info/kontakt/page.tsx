@@ -1,11 +1,40 @@
-"use client";
-import React from 'react';
+'use client';
+import React, { useState, FormEvent } from 'react';
 import Link from 'next/link';
 
 export default function KontaktPage() {
+  const [status, setStatus] = useState({ submitting: false, success: false, error: '' });
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setStatus({ submitting: true, success: false, error: '' });
+
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Etwas ist schief gelaufen.');
+      }
+
+      setStatus({ submitting: false, success: true, error: '' });
+      (e.target as HTMLFormElement).reset();
+
+    } catch (error: any) {
+      setStatus({ submitting: false, success: false, error: error.message });
+    }
+  };
+
   return (
     <div style={pageStyle}>
-      {/* Navigation */}
       <nav style={navStyle}>
         <Link href="/info" style={backLink}>← Zurück zur Info-Seite</Link>
         <div style={{ fontWeight: 'bold' }}>OrdoServus Kontakt</div>
@@ -17,34 +46,39 @@ export default function KontaktPage() {
           <p style={{ color: '#666' }}>Haben Sie Fragen, Anregungen oder benötigen Sie technische Hilfe?</p>
         </header>
 
-        <div style={gridStyle}>
-          {/* Support Optionen */}
-          <div style={cardStyle}>
-            <h3>🚀 Technischer Support</h3>
-            <p>Da OrdoServus ein Open-Source-Projekt ist, verwalten wir Fehler und Wünsche öffentlich auf GitHub.</p>
-            <a 
-              href="https://github.com/ordoservus/ordoservus/issues" 
-              target="_blank" 
-              style={buttonStyle('#2c3e50')}
-            >
-              Fehler auf GitHub melden
-            </a>
+        <div style={contactGrid}>
+          {/* Contact Form */}
+          <div style={formCardStyle}>
+            <h3>Schreiben Sie uns direkt</h3>
+            <p>Wir freuen uns auf Ihre Nachricht und melden uns schnellstmöglich bei Ihnen.</p>
+            <form onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
+              <input type="text" name="name" placeholder="Ihr Name" required style={inputStyle} />
+              <input type="email" name="email" placeholder="Ihre E-Mail-Adresse" required style={inputStyle} />
+              <textarea name="message" placeholder="Ihre Nachricht..." required style={textareaStyle}></textarea>
+              <button type="submit" disabled={status.submitting} style={submitButtonStyle}>
+                {status.submitting ? 'Wird gesendet...' : 'Nachricht senden'}
+              </button>
+            </form>
+            {status.success && <p style={{ color: 'green', marginTop: '15px' }}>Vielen Dank! Ihre Nachricht wurde erfolgreich gesendet.</p>}
+            {status.error && <p style={{ color: 'red', marginTop: '15px' }}>{status.error}</p>}
           </div>
 
-          <div style={cardStyle}>
-            <h3>📧 Direktkontakt</h3>
-            <p>Für allgemeine Anfragen oder Feedback können Sie mir gerne eine E-Mail schreiben.</p>
-            <a href="mailto:florian@my.mail.ch" style={buttonStyle('#27ae60')}>
-              E-Mail senden
-            </a>
-          </div>
-
-          <div style={cardStyle}>
-            <h3>❓ Hilfe</h3>
-            <p>Bitte schauen Sie auch in unserem Hilfe-Portal vorbei.</p>
-            <a href="/info/help" style={buttonStyle('#ef5c22')}>
-              Hilfe-Portal
-            </a>
+          {/* Other Options */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={sideCardStyle}>
+              <h4>🚀 Technischer Support</h4>
+              <p>Fehler und Wünsche können Sie direkt auf GitHub melden.</p>
+              <a href="https://github.com/ordoservus/ordoservus/issues" target="_blank" style={buttonStyle('#2c3e50')}>
+                GitHub Issues
+              </a>
+            </div>
+            <div style={sideCardStyle}>
+              <h4>❓ Hilfe-Portal</h4>
+              <p>Viele Antworten finden Sie bereits in unserem Hilfe-Bereich.</p>
+              <a href="/info/help" style={buttonStyle('#ef5c22')}>
+                Zur Hilfe
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -67,15 +101,37 @@ const containerStyle: React.CSSProperties = {
   maxWidth: '900px', margin: '0 auto', padding: '60px 20px'
 };
 
-const gridStyle: React.CSSProperties = {
-  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '60px'
+const contactGrid: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '2fr 1fr',
+    gap: '30px',
 };
 
-const cardStyle: React.CSSProperties = {
-  backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', textAlign: 'center'
+const formCardStyle: React.CSSProperties = {
+  backgroundColor: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
+};
+
+const sideCardStyle: React.CSSProperties = {
+  backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', textAlign: 'center'
+};
+
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '12px', marginBottom: '15px', borderRadius: '6px', border: '1px solid #ddd', boxSizing: 'border-box'
+};
+
+const textareaStyle: React.CSSProperties = {
+  ...inputStyle,
+  height: '120px',
+  resize: 'vertical',
+};
+
+const submitButtonStyle: React.CSSProperties = {
+  display: 'block', width: '100%', padding: '15px', backgroundColor: '#27ae60', color: 'white',
+  border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer'
 };
 
 const buttonStyle = (color: string) => ({
-  display: 'inline-block', padding: '10px 20px', backgroundColor: color, color: 'white', 
+  display: 'inline-block', padding: '10px 20px', backgroundColor: color, color: 'white',
   textDecoration: 'none', borderRadius: '6px', fontWeight: 'bold' as 'bold', marginTop: '10px'
 });
