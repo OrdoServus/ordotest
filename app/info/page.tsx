@@ -12,12 +12,12 @@ export default function InfoPage() {
           <div style={{ fontWeight: 'bold', fontSize: '1.5rem' }}>OrdoServus</div>
         </Link>
         <div>
-          <Link href="/" style={navLink}>Zur App</Link>
           <a href="#features" style={navLink}>Funktionen</a>
           <a href="#ueber" style={navLink}>Über das Projekt</a>
+          <Link href="/info/downloads" style={navLink}>Downloads</Link>
           <Link href="/info/help" style={navLink}>Hilfe</Link>
           <Link href="/info/kontakt" style={navLink}>Kontakt</Link>
-          <Link href="/info/downloads" style={navLink}>Downloads</Link>
+          <Link href="/" style={navLink}>Zur App</Link>
         </div>
       </nav>
 
