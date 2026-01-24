@@ -2,16 +2,13 @@
 import React from 'react';
 import Link from 'next/link';
 
-// A simple component for each download option
-const DownloadOption = ({ title, icon, action, disabled = false, comingSoon = false }) => {
+// A simple component for each download option (without icon)
+const DownloadOption = ({ title, comingSoon = false }) => {
   return (
     <div style={styles.downloadOption}>
-      <div style={styles.icon}>{icon}</div>
       <h3 style={styles.optionTitle}>{title}</h3>
-      {comingSoon ? (
-        <button style={styles.disabledButton} disabled>Bald verfügbar</button>
-      ) : (
-        action
+      {comingSoon && (
+        <span style={styles.disabledButton}>Bald verfügbar</span>
       )}
     </div>
   );
@@ -35,7 +32,7 @@ export default function DownloadsPage() {
 
         {/* Web App Section */}
         <div style={styles.webAppCard}>
-          <h2>🌐 Web-App</h2>
+          <h2>Web-App</h2>
           <p>Nutzen Sie die volle Funktionalität von OrdoServus direkt im Browser. Keine Installation notwendig.</p>
           <Link href="/" style={styles.launchButton}>
             Web-App starten
@@ -43,23 +40,23 @@ export default function DownloadsPage() {
         </div>
 
         {/* Desktop & Mobile Sections */}
-        <div style={styles.appsGrid}>
+        <div style={styles.appsContainer}>
           {/* Desktop */}
           <div style={styles.category}>
-            <h2 style={styles.categoryTitle}>💻 Desktop</h2>
+            <h2 style={styles.categoryTitle}>Desktop</h2>
             <div style={styles.optionsContainer}>
-              <DownloadOption title="Windows" icon="🪟" comingSoon />
-              <DownloadOption title="macOS" icon="" comingSoon />
-              <DownloadOption title="Linux" icon="🐧" comingSoon />
+              <DownloadOption title="Windows" comingSoon />
+              <DownloadOption title="macOS" comingSoon />
+              <DownloadOption title="Linux" comingSoon />
             </div>
           </div>
 
           {/* Mobile */}
           <div style={styles.category}>
-            <h2 style={styles.categoryTitle}>📱 Mobile</h2>
+            <h2 style={styles.categoryTitle}>Mobile</h2>
             <div style={styles.optionsContainer}>
-              <DownloadOption title="iOS" icon="iPhone" comingSoon />
-              <DownloadOption title="Android" icon="Android" comingSoon />
+              <DownloadOption title="iOS" comingSoon />
+              <DownloadOption title="Android" comingSoon />
             </div>
           </div>
         </div>
@@ -67,7 +64,7 @@ export default function DownloadsPage() {
         <footer style={styles.footer}>
           <p>
             OrdoServus ist ein Open-Source-Projekt. Helfen Sie mit auf{' '}
-            <a href="https://github.com/ordoservus/ordoservus" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/ordoservus/ordoservus" target="_blank" rel="noopener noreferrer" style={{ color: '#ef5c22' }}>
               GitHub
             </a>.
           </p>
@@ -77,7 +74,6 @@ export default function DownloadsPage() {
   );
 }
 
-
 const styles: { [key: string]: React.CSSProperties } = {
   page: {
     fontFamily: 'sans-serif',
@@ -86,7 +82,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#2c3e50',
   },
   nav: {
-    padding: '20px 50px',
+    padding: '20px',
     borderBottom: '1px solid #eee',
     display: 'flex',
     justifyContent: 'space-between',
@@ -100,11 +96,11 @@ const styles: { [key: string]: React.CSSProperties } = {
   main: {
     maxWidth: '900px',
     margin: '0 auto',
-    padding: '50px 20px',
+    padding: '40px 20px',
   },
   header: {
     textAlign: 'center',
-    marginBottom: '50px',
+    marginBottom: '40px',
   },
   subtitle: {
     fontSize: '1.1rem',
@@ -116,9 +112,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: '#f9f9fb',
     border: '1px solid #eee',
     borderRadius: '12px',
-    padding: '40px',
+    padding: '30px',
     textAlign: 'center',
-    marginBottom: '50px',
+    marginBottom: '40px',
   },
   launchButton: {
     display: 'inline-block',
@@ -130,14 +126,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 'bold',
     marginTop: '20px',
   },
-
-  appsGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '40px',
+  appsContainer: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '30px',
   },
   category: {
-    
+    flex: '1 1 300px',
+    minWidth: '280px',
   },
   categoryTitle: {
       textAlign: 'center',
@@ -153,20 +149,14 @@ const styles: { [key: string]: React.CSSProperties } = {
   downloadOption: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#f9f9fb',
     padding: '15px 20px',
     borderRadius: '10px',
     border: '1px solid #eee',
   },
-  icon: {
-    fontSize: '1.8rem',
-    marginRight: '15px',
-    width: '30px',
-    textAlign: 'center',
-  },
   optionTitle: {
     margin: 0,
-    flexGrow: 1,
     fontSize: '1.1rem',
   },
   disabledButton: {
@@ -176,7 +166,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: 'none',
     borderRadius: '6px',
     fontWeight: 'bold',
-    cursor: 'not-allowed',
+    fontSize: '0.9rem',
   },
   footer: {
     textAlign: 'center',

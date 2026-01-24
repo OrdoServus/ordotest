@@ -1,106 +1,114 @@
+'use client';
+import React from 'react';
+import Link from 'next/link';
+
 export default function ImpressumPage() {
   return (
-    <main className="min-h-screen bg-gray-50 py-16 px-6">
-      <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-xl p-10 border border-gray-200">
-        
-        <header className="mb-12 text-center">
-          <h1 className="text-4xl font-semibold text-gray-800 tracking-tight">
-            Impressum
-          </h1>
-          <div className="mt-3 h-1 w-20 bg-yellow-600 mx-auto rounded-full" />
-        </header>
+    <div style={styles.page}>
+        <nav style={styles.nav}>
+            <Link href="/info" style={styles.backLink}>← Zurück zur Info-Seite</Link>
+            <div style={{ fontWeight: 'bold' }}>Impressum</div>
+        </nav>
+        <main style={styles.main}>
+            <header style={styles.header}>
+                <h1>Impressum</h1>
+            </header>
+            <section style={styles.content}>
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>Verantwortung</h2>
+                    <p>
+                        OrdoServus ist ein nicht-kommerzielles Open-Source-Projekt.
+                        Die Verantwortung für auf einem Server betriebene Instanzen liegt bei der jeweiligen Person oder Organisation, die den Server administriert.
+                    </p>
+                     <p style={{ marginTop: 10 }}>
+                        Das Projekt wird auf GitHub von einer Gemeinschaft von Freiwilligen entwickelt. 
+                        Fehler, Anregungen oder Beiträge können dort eingereicht werden.
+                    </p>
+                </div>
 
-        <section className="space-y-10 text-gray-700 leading-relaxed">
-          
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-              Verantwortliche Stelle
-            </h2>
-            <p>
-              [BITTE HIER IHREN NAMEN ODER DEN NAMEN DER ORGANISATION EINTRAGEN] <br />
-              [BITTE HIER IHRE STRASSE UND HAUSNUMMER EINTRAGEN] <br />
-              [BITTE HIER IHRE PLZ UND DEN ORT EINTRAGEN] <br />
-              Schweiz
-            </p>
-            <p className="mt-2">
-              E‑Mail: [BITTE HIER IHRE KONTAKT-E-MAIL EINTRAGEN] <br />
-              Website: [BITTE HIER DIE DOMAIN DER WEB-SOFTWARE EINTRAGEN]
-            </p>
-          </div>
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>Haftungsausschluss</h2>
+                    <p>
+                        Die Nutzung der Software erfolgt auf eigene Gefahr. Es wird keine Gewähr für die 
+                        Richtigkeit, Vollständigkeit oder Aktualität der bereitgestellten Funktionen und Inhalte übernommen.
+                    </p>
+                </div>
 
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-              Vertretungsberechtigte Person
-            </h2>
-            <p>
-              [BITTE HIER DEN NAMEN DER VERANTWORTLICHEN PERSON EINTRAGEN] <br />
-              Funktion: [BITTE HIER DIE FUNKTION EINTRAGEN, z.B. Pfarrer, IT-Leitung]
-            </p>
-          </div>
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>Urheberrecht</h2>
+                    <p>
+                        Der Quellcode von OrdoServus ist unter der MIT-Lizenz veröffentlicht. 
+                        Die Inhalte und Strukturen der Software sind urheberrechtlich geschützt, soweit nicht anders angegeben.
+                    </p>
+                </div>
 
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-              Haftungsausschluss
-            </h2>
-            <p>
-              Die Inhalte dieser Web‑Software werden mit grösstmöglicher Sorgfalt erstellt. 
-              Dennoch übernimmt die verantwortliche Stelle keine Gewähr für die 
-              Richtigkeit, Vollständigkeit oder Aktualität der bereitgestellten Informationen.
-            </p>
-            <p className="mt-2">
-              Haftungsansprüche gegen die verantwortliche Stelle wegen Schäden materieller 
-              oder immaterieller Art, die aus dem Zugriff oder der Nutzung bzw. Nichtnutzung 
-              der veröffentlichten Informationen entstehen, sind ausgeschlossen, 
-              soweit gesetzlich zulässig.
-            </p>
-          </div>
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>Datenschutz</h2>
+                    <p>
+                        Informationen zur Verarbeitung personenbezogener Daten finden Sie in der{" "}
+                        <Link href="/info/legal/datenschutz" style={{ color: '#ef5c22', textDecoration: 'underline' }}>
+                            Datenschutzerklärung
+                        </Link>.
+                    </p>
+                </div>
 
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-              Externe Links
-            </h2>
-            <p>
-              Diese Web‑Software kann Links zu externen Websites enthalten. Für Inhalte 
-              externer Seiten wird keine Verantwortung übernommen. Für den Inhalt der 
-              verlinkten Seiten sind ausschliesslich deren Betreiber verantwortlich.
-            </p>
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-              Urheberrecht
-            </h2>
-            <p>
-              Die Inhalte, Strukturen und der Quellcode dieser Web‑Software sind 
-              urheberrechtlich geschützt. Jede Verwendung ausserhalb der engen Grenzen 
-              des Urheberrechts bedarf der schriftlichen Zustimmung der verantwortlichen Stelle.
-            </p>
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-              Datenschutz
-            </h2>
-            <p>
-              Informationen zur Verarbeitung personenbezogener Daten finden Sie in der{" "}
-              <a href="/info/legal/datenschutz" className="text-yellow-700 underline">
-                Datenschutzerklärung
-              </a>.
-            </p>
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-              Kontakt
-            </h2>
-            <p>
-              Bei Fragen zum Impressum oder zur Web‑Software wenden Sie sich bitte an die oben genannte
-              verantwortliche Stelle.
-            </p>
-          </div>
-
-        </section>
-      </div>
-    </main>
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>Kontakt</h2>
+                    <p>
+                        Bei Fragen zum Projekt können Sie über GitHub oder die auf der Kontakt-Seite 
+                        angegebenen Wege mit den Entwicklern in Verbindung treten.
+                    </p>
+                </div>
+            </section>
+        </main>
+    </div>
   );
 }
+
+const styles: { [key: string]: React.CSSProperties } = {
+  page: {
+    fontFamily: 'sans-serif',
+    backgroundColor: '#f9f9fb',
+    minHeight: '100vh',
+    color: '#333',
+  },
+  nav: {
+    padding: '20px',
+    backgroundColor: '#fff',
+    borderBottom: '1px solid #eee',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  backLink: {
+    textDecoration: 'none',
+    color: '#2c3e50',
+    fontWeight: 'bold',
+  },
+  main: {
+    maxWidth: '800px',
+    margin: '0 auto',
+    padding: '40px 20px',
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: '40px',
+    fontSize: '1.8rem',
+  },
+  content: {
+    backgroundColor: '#fff',
+    padding: '30px',
+    borderRadius: '12px',
+    border: '1px solid #eee',
+    lineHeight: 1.7,
+  },
+  section: {
+    marginBottom: '30px',
+  },
+  h2: {
+    fontSize: '1.4rem',
+    fontWeight: 'bold',
+    marginBottom: '10px',
+    color: '#2c3e50',
+  },
+};

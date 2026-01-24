@@ -1,38 +1,8 @@
 'use client';
-import React, { useState, FormEvent } from 'react';
+import React from 'react';
 import Link from 'next/link';
 
 export default function KontaktPage() {
-  const [status, setStatus] = useState({ submitting: false, success: false, error: '' });
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setStatus({ submitting: true, success: false, error: '' });
-
-    const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries());
-
-    try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Etwas ist schief gelaufen.');
-      }
-
-      setStatus({ submitting: false, success: true, error: '' });
-      (e.target as HTMLFormElement).reset();
-
-    } catch (error: any) {
-      setStatus({ submitting: false, success: false, error: error.message });
-    }
-  };
-
   return (
     <div style={pageStyle}>
       <nav style={navStyle}>
@@ -51,16 +21,15 @@ export default function KontaktPage() {
           <div style={formCardStyle}>
             <h3>Schreiben Sie uns direkt</h3>
             <p>Wir freuen uns auf Ihre Nachricht und melden uns schnellstmöglich bei Ihnen.</p>
-            <form onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
+            <form action="https://formspree.io/f/xwvlynzn" method="POST" style={{ marginTop: '20px' }}>
               <input type="text" name="name" placeholder="Ihr Name" required style={inputStyle} />
               <input type="email" name="email" placeholder="Ihre E-Mail-Adresse" required style={inputStyle} />
               <textarea name="message" placeholder="Ihre Nachricht..." required style={textareaStyle}></textarea>
-              <button type="submit" disabled={status.submitting} style={submitButtonStyle}>
-                {status.submitting ? 'Wird gesendet...' : 'Nachricht senden'}
+              <button type="submit" style={submitButtonStyle}>
+                Nachricht senden
               </button>
             </form>
-            {status.success && <p style={{ color: 'green', marginTop: '15px' }}>Vielen Dank! Ihre Nachricht wurde erfolgreich gesendet.</p>}
-            {status.error && <p style={{ color: 'red', marginTop: '15px' }}>{status.error}</p>}
+             <p style={{ fontSize: '0.8rem', color: '#777', marginTop: '15px', textAlign: 'center' }}>Powered by Formspree</p>
           </div>
 
           {/* Other Options */}
@@ -86,38 +55,37 @@ export default function KontaktPage() {
   );
 }
 
-// --- STYLES ---
+// --- STYLES (Mobile-First Update) ---
 const pageStyle: React.CSSProperties = {
   fontFamily: 'sans-serif', backgroundColor: '#f9f9fb', minHeight: '100vh'
 };
 
 const navStyle: React.CSSProperties = {
-  padding: '20px 50px', backgroundColor: '#fff', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between'
+  padding: '20px', backgroundColor: '#fff', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
 };
 
 const backLink = { textDecoration: 'none', color: '#2c3e50', fontWeight: 'bold' as 'bold' };
 
 const containerStyle: React.CSSProperties = {
-  maxWidth: '900px', margin: '0 auto', padding: '60px 20px'
+  maxWidth: '900px', margin: '0 auto', padding: '40px 20px'
 };
 
 const contactGrid: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr',
+    display: 'flex',
+    flexDirection: 'column',
     gap: '30px',
 };
 
 const formCardStyle: React.CSSProperties = {
-  backgroundColor: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
+  backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', order: 1
 };
 
 const sideCardStyle: React.CSSProperties = {
-  backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', textAlign: 'center'
+  backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', textAlign: 'center', order: 2
 };
 
-
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '12px', marginBottom: '15px', borderRadius: '6px', border: '1px solid #ddd', boxSizing: 'border-box'
+  width: '100%', padding: '12px', marginBottom: '15px', borderRadius: '6px', border: '1px solid #ddd', boxSizing: 'border-box', fontFamily: 'sans-serif'
 };
 
 const textareaStyle: React.CSSProperties = {
@@ -128,7 +96,7 @@ const textareaStyle: React.CSSProperties = {
 
 const submitButtonStyle: React.CSSProperties = {
   display: 'block', width: '100%', padding: '15px', backgroundColor: '#27ae60', color: 'white',
-  border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer'
+  border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'sans-serif'
 };
 
 const buttonStyle = (color: string) => ({
