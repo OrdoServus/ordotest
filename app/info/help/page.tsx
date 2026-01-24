@@ -101,7 +101,7 @@ export default function HilfePage() {
             <div style={styles.icon}>{cat.icon}</div>
             <h2 style={styles.cardTitle}>{cat.title}</h2>
             <p style={styles.cardDesc}>
-              {cat.articles.length} Artikel{cat.articles.length !== 1 ? 'e' : ''}
+              {cat.articles.length} Artikel
             </p>
           </Link>
         ))}

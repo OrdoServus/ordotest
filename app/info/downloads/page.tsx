@@ -2,8 +2,12 @@
 import React from 'react';
 import Link from 'next/link';
 
-// A simple component for each download option (without icon)
-const DownloadOption = ({ title, comingSoon = false }) => {
+interface DownloadOptionProps {
+  title: string;
+  comingSoon?: boolean;
+}
+
+const DownloadOption = ({ title, comingSoon = false }: DownloadOptionProps) => {
   return (
     <div style={styles.downloadOption}>
       <h3 style={styles.optionTitle}>{title}</h3>
@@ -24,9 +28,9 @@ export default function DownloadsPage() {
 
       <main style={styles.main}>
         <header style={styles.header}>
-          <h1>OrdoServus herunterladen</h1>
+          <h1 style={styles.pageTitle}>OrdoServus herunterladen</h1>
           <p style={styles.subtitle}>
-            Greifen Sie auf OrdoServus über unsere Web-App zu. Native Apps für Desktop und Mobile sind in Vorbereitung.
+            Greifen Sie auf OrdoServus über unsere Web-App zu. Apps für Desktop und Mobile sind in Vorbereitung.
           </p>
         </header>
 
@@ -101,6 +105,12 @@ const styles: { [key: string]: React.CSSProperties } = {
   header: {
     textAlign: 'center',
     marginBottom: '40px',
+  },
+  pageTitle: {
+    fontSize: '2.8rem',
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    margin: '0 0 15px 0',
   },
   subtitle: {
     fontSize: '1.1rem',
