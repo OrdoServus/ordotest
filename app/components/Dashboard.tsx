@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React from 'react';
 import Link from 'next/link';
 
@@ -16,8 +16,6 @@ interface DashboardProps {
   dokumente: Dokument[];
   onNeuGottesdienst: () => void;
   onNeuNotiz: () => void;
-  // onWähleDokument ist nützlich, wenn wir eine Liste der letzten Dokumente anzeigen
-  // onWähleDokument: (id: string) => void;
 }
 
 export default function Dashboard({ dokumente, onNeuGottesdienst, onNeuNotiz }: DashboardProps) {
@@ -69,7 +67,17 @@ export default function Dashboard({ dokumente, onNeuGottesdienst, onNeuNotiz }: 
       </div>
 
       <footer style={footerStyle}>
-        <p>Zuletzt bearbeitet: {dokumente[0]?.titel || 'Keine Dokumente vorhanden'}</p>
+        <p>© {new Date().getFullYear()} OrdoServus – Open Source Projekt</p>
+        <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Link href="/info/legal/impressum" style={footerLinkStyle}>Impressum</Link>
+          <Link href="/info/legal/datenschutz" style={footerLinkStyle}>Datenschutz</Link>
+          <Link href="/info/legal/lizenz" style={footerLinkStyle}>Lizenz</Link>
+          <a href="https://github.com/ordoservus/ordoservus" target="_blank" rel="noopener noreferrer" style={footerLinkStyle}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ verticalAlign: 'middle' }}>
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v 3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </a>
+        </div>
       </footer>
     </div>
   );
@@ -78,14 +86,16 @@ export default function Dashboard({ dokumente, onNeuGottesdienst, onNeuNotiz }: 
 // --- STYLES ---
 const containerStyle: React.CSSProperties = {
   flex: 1, padding: '60px', backgroundColor: '#f9f9fb',
-  display: 'flex', flexDirection: 'column', alignItems: 'center'
+  display: 'flex', flexDirection: 'column', alignItems: 'center',
+  minHeight: '100vh' // Stellt sicher, dass der Container die volle Höhe hat
 };
 
 const headerStyle: React.CSSProperties = { textAlign: 'center', marginBottom: '50px', width: '100%' };
 
 const gridStyle: React.CSSProperties = {
   display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-  gap: '30px', width: '100%', maxWidth: '1000px'
+  gap: '30px', width: '100%', maxWidth: '1000px',
+  flexGrow: 1 // Lässt den Grid-Bereich wachsen
 };
 
 const cardStyle: React.CSSProperties = {
@@ -107,7 +117,18 @@ const btnStyle = (color: string) => ({
   padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' as 'bold'
 });
 
-const footerStyle: React.CSSProperties = { marginTop: 'auto', paddingTop: '40px', color: '#bdc3c7', fontSize: '0.9rem' };
+const footerStyle: React.CSSProperties = {
+  width: '100%',
+  marginTop: 'auto', // Schiebt den Footer nach unten
+  padding: '40px 20px', 
+  textAlign: 'center', 
+  backgroundColor: '#2c3e50', 
+  color: 'white'
+};
+
+const footerLinkStyle: React.CSSProperties = {
+    color: '#aaa', margin: '5px 10px', textDecoration: 'none'
+};
 
 const bannerStyle: React.CSSProperties = {
   backgroundColor: '#e8f4fd',
@@ -116,7 +137,7 @@ const bannerStyle: React.CSSProperties = {
   padding: '15px',
   marginBottom: '30px',
   textAlign: 'center',
-  color: '#2c3e50',
+  color: '#2c50',
   fontSize: '1rem',
   width: '100%',
   maxWidth: '1000px'

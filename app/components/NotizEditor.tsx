@@ -1,5 +1,5 @@
 'use client';
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 
 // Dokument interface
 interface Dokument {
@@ -23,6 +23,18 @@ interface EditorProps {
 
 export default function NotizEditor({ titel, inhalt, onTitelChange, onInhaltChange, onSpeichern, document: dok }: EditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const isInitialMount = useRef(true);
+
+  // Setze den Inhalt nur beim initialen Laden oder wenn das Dokument gewechselt wird
+  useEffect(() => {
+    if (editorRef.current && (isInitialMount.current || editorRef.current.innerHTML !== inhalt)) {
+      // Nur setzen wenn der Inhalt wirklich unterschiedlich ist
+      if (editorRef.current.innerHTML !== inhalt) {
+        editorRef.current.innerHTML = inhalt;
+      }
+      isInitialMount.current = false;
+    }
+  }, [dok.id]); // Nur bei Dokument-Wechsel neu setzen
 
   // Hilfsfunktion für execCommand - nutzt das Browser-DOM-Objekt
   const exec = (cmd: string, val: string | undefined = undefined) => {
@@ -225,7 +237,6 @@ export default function NotizEditor({ titel, inhalt, onTitelChange, onInhaltChan
           suppressContentEditableWarning
           onInput={(e) => onInhaltChange(e.currentTarget.innerHTML)}
           onBlur={onSpeichern}
-          dangerouslySetInnerHTML={{ __html: inhalt }}
           style={styles.notizEditorArea}
         />
       </div>
