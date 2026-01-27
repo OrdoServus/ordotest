@@ -9,10 +9,6 @@ interface ChangelogEntry {
   changes: string[];
 }
 
-// The URL to your raw updates.json on GitHub.
-// !! IMPORTANT !! Replace DEIN_NUTZERNAME and DEIN_REPO with your actual GitHub username and repository name.
-const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/OrdoServus/ordotest/refs/heads/main/public/updates.json?token=GHSAT0AAAAAADOG4RMUSD37OG7ZHW6R6FZE2LYVNNA';
-
 const WhatsNewPage: React.FC = () => {
   const [updates, setUpdates] = useState<ChangelogEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -21,9 +17,10 @@ const WhatsNewPage: React.FC = () => {
   useEffect(() => {
     const fetchChangelog = async () => {
       try {
-        const response = await fetch(GITHUB_RAW_URL);
+        // Fetch data from the local /public/updates.json file
+        const response = await fetch('/updates.json');
         if (!response.ok) {
-          throw new Error(`Fehler beim Laden der Updates von GitHub. Status: ${response.status}`);
+          throw new Error(`Fehler beim Laden der lokalen Updates.json. Status: ${response.status}`);
         }
         const data = await response.json();
         setUpdates(data);
@@ -41,7 +38,7 @@ const WhatsNewPage: React.FC = () => {
     <div style={styles.container}>
       <h1 style={styles.mainTitle}>Was ist neu in OrdoServus?</h1>
       
-      {loading && <p>Lade Neuigkeiten von GitHub...</p>}
+      {loading && <p>Lade Neuigkeiten...</p>}
       {error && <p style={styles.errorText}>{error}</p>}
 
       {!loading && !error && (
@@ -65,7 +62,7 @@ const WhatsNewPage: React.FC = () => {
   );
 };
 
-// --- STYLES (unchanged) ---
+// --- STYLES (largely unchanged, using project conventions) ---
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
     maxWidth: '800px',

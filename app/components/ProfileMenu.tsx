@@ -1,15 +1,29 @@
 'use client';
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { MoreVertical, User, LogOut, Gift, Info, HelpCircle, Settings, Bug } from 'lucide-react';
+import { MoreVertical, User, LogOut, Gift, Info, HelpCircle, Bug, Github } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '../AuthContext';
 
 const ProfileMenu: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [version, setVersion] = useState('...'); // Default loading text
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const { logout } = useAuth();
+
+  // Fetch and set the current version from the JSON file
+  useEffect(() => {
+    fetch('/updates.json')
+      .then(res => res.json())
+      .then(data => {
+        // The latest version is the first entry in the array
+        if (data && data.length > 0 && data[0].version) {
+          setVersion(data[0].version);
+        }
+      })
+      .catch(() => setVersion('N/A')); // Set to N/A if fetching fails
+  }, []);
 
   const toggleMenu = () => {
     setIsOpen(prev => !prev);
@@ -25,7 +39,6 @@ const ProfileMenu: React.FC = () => {
       const buttonRect = buttonRef.current.getBoundingClientRect();
       const menuWidth = menuRef.current.offsetWidth;
       const menuHeight = menuRef.current.offsetHeight;
-      const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
 
       let top = buttonRect.bottom + 8;
@@ -65,37 +78,42 @@ const ProfileMenu: React.FC = () => {
 
       {isOpen && (
         <div ref={menuRef} style={styles.dropdownMenu}>
-          <Link href="/profile" style={styles.dropdownItemLink} onClick={closeMenu}>
-            <User size={16} style={{ marginRight: '10px' }} />
-            Profil
-          </Link>
+          <div style={styles.mainContent}>
+            <Link href="/profile" style={styles.dropdownItemLink} onClick={closeMenu}>
+              <User size={16} style={{ marginRight: '10px' }} />
+              Profil
+            </Link>
+            <div style={styles.dropdownSeparator}></div>
+            <Link href="/info/whats-new" style={styles.dropdownItemLink} onClick={closeMenu}>
+              <Gift size={16} style={{ marginRight: '10px' }} />
+              Das ist neu
+            </Link>
+            <Link href="/info" style={styles.dropdownItemLink} onClick={closeMenu}>
+              <Info size={16} style={{ marginRight: '10px' }} />
+              Über OrdoServus
+            </Link>
+            <Link href="/info/help" style={styles.dropdownItemLink} onClick={closeMenu}>
+              <HelpCircle size={16} style={{ marginRight: '10px' }} />
+              Hilfe
+            </Link>
+            <Link href="/info/kontakt" style={styles.dropdownItemLink} onClick={closeMenu}>
+              <Bug size={16} style={{ marginRight: '10px' }} />
+              Fehler melden
+            </Link>
+            <div style={styles.dropdownSeparator}></div>
+            <button onClick={handleLogout} style={styles.dropdownItemButton}>
+              <LogOut size={16} style={{ marginRight: '10px' }} />
+              Abmelden
+            </button>
+          </div>
           <div style={styles.dropdownSeparator}></div>
-          <Link href="/info/whats-new" style={styles.dropdownItemLink} onClick={closeMenu}>
-            <Gift size={16} style={{ marginRight: '10px' }} />
-            Das ist neu
-          </Link>
-          <Link href="/info" style={styles.dropdownItemLink} onClick={closeMenu}>
-            <Info size={16} style={{ marginRight: '10px' }} />
-            Über OrdoServus
-          </Link>
-          <Link href="/info/help" style={styles.dropdownItemLink} onClick={closeMenu}>
-            <HelpCircle size={16} style={{ marginRight: '10px' }} />
-            Hilfe
-          </Link>
-          <div style={styles.dropdownSeparator}></div>
-          <Link href="/settings" style={styles.dropdownItemLink} onClick={closeMenu}>
-            <Settings size={16} style={{ marginRight: '10px' }} />
-            Einstellungen
-          </Link>
-          <Link href="/info/kontakt" style={styles.dropdownItemLink} onClick={closeMenu}>
-            <Bug size={16} style={{ marginRight: '10px' }} />
-            Fehler melden
-          </Link>
-          <div style={styles.dropdownSeparator}></div>
-          <button onClick={handleLogout} style={styles.dropdownItemButton}>
-            <LogOut size={16} style={{ marginRight: '10px' }} />
-            Abmelden
-          </button>
+          <div style={styles.footer}>
+             <p style={styles.footerText}>Version {version}</p>
+            <a href="https://github.com/Lorganiz/OrdoServus" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>
+                <Github size={14} />
+            </a>
+            <p style={styles.footerText}>&copy; 2026</p>
+          </div>
         </div>
       )}
     </>
@@ -134,11 +152,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     transition: 'opacity 0.1s ease-out, transform 0.1s ease-out',
     backgroundColor: 'white',
     border: '1px solid #e0e0e0',
-    borderRadius: '8px',
+    borderRadius: '12px',
     boxShadow: '0 5px 15px rgba(0,0,0,0.12)',
-    padding: '6px',
     zIndex: 1100,
     minWidth: '220px',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  mainContent: {
+    padding: '6px',
   },
   dropdownItemLink: {
     ...dropdownItemBase,
@@ -153,6 +175,27 @@ const styles: { [key: string]: React.CSSProperties } = {
     height: '1px',
     backgroundColor: '#f1f3f5',
     margin: '5px 0',
+  },
+  footer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '8px 12px',
+    gap: '10px',
+    backgroundColor: '#f8f9fa',
+    borderBottomLeftRadius: '12px',
+    borderBottomRightRadius: '12px',
+  },
+  footerText: {
+    color: '#6c757d',
+    fontSize: '0.75rem',
+    margin: 0,
+  },
+  footerLink: {
+    color: '#6c757d',
+    textDecoration: 'none',
+    display: 'flex',
+    alignItems: 'center',
   },
 };
 
