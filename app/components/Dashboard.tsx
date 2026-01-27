@@ -1,23 +1,36 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 
-export default function Dashboard({ onModusWechsel, onNeu, dokumente }: any) {
+// TypeScript-Interfaces für Typensicherheit
+interface Dokument {
+  id: string;
+  titel: string;
+  inhalt: string;
+  typ: 'gottesdienst' | 'notiz';
+  isFavorit: boolean;
+  datum: any;
+}
 
-  const liturgienCount = dokumente.filter((d: any) => d.typ === 'gottesdienst').length;
-  const notizenCount = dokumente.filter((d: any) => d.typ === 'notizbuch').length;
+interface DashboardProps {
+  dokumente: Dokument[];
+  onNeuGottesdienst: () => void;
+  onNeuNotiz: () => void;
+  // onWähleDokument ist nützlich, wenn wir eine Liste der letzten Dokumente anzeigen
+  // onWähleDokument: (id: string) => void;
+}
+
+export default function Dashboard({ dokumente, onNeuGottesdienst, onNeuNotiz }: DashboardProps) {
+
+  const liturgienCount = dokumente.filter((d) => d.typ === 'gottesdienst').length;
+  const notizenCount = dokumente.filter((d) => d.typ === 'notiz').length;
 
   return (
     <div style={containerStyle}>
       <header style={headerStyle}>
-        <div style={headerContentStyle}>
-          <div>
-            <h1 style={{ fontSize: '2.5rem', color: '#2c3e50', marginBottom: '10px' }}>Willkommen bei OrdoServus</h1>
-            <p style={{ color: '#7f8c8d', fontSize: '1.2rem' }}>Was möchten Sie heute tun?</p>
-          </div>
-          <Link href="/login" style={headerLoginButtonStyle}>
-            🔐 Anmelden
-          </Link>
+        <div>
+          <h1 style={{ fontSize: '2.5rem', color: '#2c3e50', marginBottom: '10px' }}>Willkommen bei OrdoServus</h1>
+          <p style={{ color: '#7f8c8d', fontSize: '1.2rem' }}>Was möchten Sie heute tun?</p>
         </div>
       </header>
 
@@ -28,28 +41,28 @@ export default function Dashboard({ onModusWechsel, onNeu, dokumente }: any) {
       <div style={gridStyle}>
         {/* Karte 1: Liturgie */}
         <div 
-          onClick={() => onModusWechsel('gottesdienst')}
+          onClick={onNeuGottesdienst}
           style={{ ...cardStyle, borderTop: '8px solid #2c3e50' }}
         >
           <div style={{ fontSize: '3rem', marginBottom: '15px' }}>⛪</div>
           <h2 style={{ color: '#2c3e50' }}>Gottesdienst-Planer</h2>
           <p style={pStyle}>Erstellen Sie Abläufe, Predigten und liturgische Texte mit Vorlagen.</p>
           <span style={badgeStyle}>{liturgienCount} Entwürfe</span>
-          <button onClick={(e) => { e.stopPropagation(); onModusWechsel('gottesdienst'); onNeu(); }} style={btnStyle('#2c3e50')}>
+          <button onClick={(e) => { e.stopPropagation(); onNeuGottesdienst(); }} style={btnStyle('#2c3e50')}>
             + Neu erstellen
           </button>
         </div>
 
         {/* Karte 2: Notizbuch */}
         <div 
-          onClick={() => onModusWechsel('notizbuch')}
+          onClick={onNeuNotiz}
           style={{ ...cardStyle, borderTop: '8px solid #80397B' }}
         >
           <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📓</div>
           <h2 style={{ color: '#80397B' }}>Digitales Notizbuch</h2>
           <p style={pStyle}>Organisieren Sie Gedanken, Katechese und Verwaltungsnotizen im OneNote-Stil.</p>
           <span style={badgeStyle}>{notizenCount} Seiten</span>
-          <button onClick={(e) => { e.stopPropagation(); onModusWechsel('notizbuch'); onNeu(); }} style={btnStyle('#80397B')}>
+          <button onClick={(e) => { e.stopPropagation(); onNeuNotiz(); }} style={btnStyle('#80397B')}>
             + Neue Notiz
           </button>
         </div>
@@ -68,9 +81,7 @@ const containerStyle: React.CSSProperties = {
   display: 'flex', flexDirection: 'column', alignItems: 'center'
 };
 
-const newHeaderStyle: React.CSSProperties = { textAlign: 'center', marginBottom: '20px' };
-
-const headerStyle: React.CSSProperties = { textAlign: 'center', marginBottom: '50px' };
+const headerStyle: React.CSSProperties = { textAlign: 'center', marginBottom: '50px', width: '100%' };
 
 const gridStyle: React.CSSProperties = {
   display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
@@ -96,7 +107,7 @@ const btnStyle = (color: string) => ({
   padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' as 'bold'
 });
 
-const footerStyle: React.CSSProperties = { marginTop: 'auto', color: '#bdc3c7', fontSize: '0.9rem' };
+const footerStyle: React.CSSProperties = { marginTop: 'auto', paddingTop: '40px', color: '#bdc3c7', fontSize: '0.9rem' };
 
 const bannerStyle: React.CSSProperties = {
   backgroundColor: '#e8f4fd',
@@ -106,28 +117,7 @@ const bannerStyle: React.CSSProperties = {
   marginBottom: '30px',
   textAlign: 'center',
   color: '#2c3e50',
-  fontSize: '1rem'
-};
-
-const headerContentStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start',
-  flexWrap: 'wrap',
-  gap: '20px'
-};
-
-const headerLoginButtonStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '8px',
-  padding: '12px 20px',
-  backgroundColor: '#2c3e50',
-  color: 'white',
-  textDecoration: 'none',
-  borderRadius: '8px',
-  fontWeight: '500',
-  fontSize: '0.95rem',
-  transition: 'background-color 0.3s ease',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+  fontSize: '1rem',
+  width: '100%',
+  maxWidth: '1000px'
 };
