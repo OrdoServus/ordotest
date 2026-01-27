@@ -3,37 +3,40 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Book, FileText } from 'lucide-react';
+import ProfileMenu from './ProfileMenu'; // Import the new component
 
 const Navbar: React.FC = () => {
   const pathname = usePathname();
 
   const getLinkClass = (path: string) => {
-    // For dashboard, we want an exact match. For others, we check if the path starts with the link path.
     const isActive = path === '/dashboard' ? pathname === path : pathname.startsWith(path);
     return isActive ? styles.navButtonActive : styles.navButton;
   };
 
   return (
     <nav style={styles.navContainer}>
-      <div style={styles.logo}>
-        <Link href="/dashboard" style={{ color: 'inherit', textDecoration: 'none' }}>
-          OrdoServus
-        </Link>
+      <div style={styles.leftContent}>
+        <div style={styles.logo}>
+          <Link href="/dashboard" style={{ color: 'inherit', textDecoration: 'none' }}>
+            OrdoServus
+          </Link>
+        </div>
+        <div style={styles.navButtons}>
+          <Link href="/dashboard" style={getLinkClass('/dashboard')}>
+            <Home size={18} style={{ marginRight: '8px' }} />
+            Dashboard
+          </Link>
+          <Link href="/gottesdienste" style={getLinkClass('/gottesdienste')}>
+            <Book size={18} style={{ marginRight: '8px' }} />
+            Gottesdienste
+          </Link>
+          <Link href="/notizen" style={getLinkClass('/notizen')}>
+            <FileText size={18} style={{ marginRight: '8px' }} />
+            Notizen
+          </Link>
+        </div>
       </div>
-      <div style={styles.navButtons}>
-        <Link href="/dashboard" style={getLinkClass('/dashboard')}>
-          <Home size={18} style={{ marginRight: '8px' }} />
-          Dashboard
-        </Link>
-        <Link href="/gottesdienste" style={getLinkClass('/gottesdienste')}>
-          <Book size={18} style={{ marginRight: '8px' }} />
-          Gottesdienste
-        </Link>
-        <Link href="/notizen" style={getLinkClass('/notizen')}>
-          <FileText size={18} style={{ marginRight: '8px' }} />
-          Notizen
-        </Link>
-      </div>
+      <ProfileMenu /> 
     </nav>
   );
 };
@@ -51,6 +54,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: 'space-between',
     boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
     flexShrink: 0,
+  },
+  leftContent: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '20px',
   },
   logo: {
     fontWeight: '600',

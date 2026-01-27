@@ -1,0 +1,24 @@
+
+[
+  {
+    "version": "1.1.0",
+    "date": "29. Juli 2024",
+    "title": "Erweiteres Profil-Menü",
+    "changes": [
+      "Ein neues, intelligentes Profil-Menü wurde hinzugefügt.",
+      "Verknüpfungen zu Profil, Einstellungen und Fehler-Meldungen integriert.",
+      "Das Menü passt seine Position automatisch an die Bildschirmgröße an.",
+      "Die Abmelde-Funktion ist nun über das Menü erreichbar."
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "15. Juli 2024",
+    "title": "Initial-Release von OrdoServus",
+    "changes": [
+      "Verwaltung von Gottesdiensten.",
+      "Notiz-Funktion für persönliche Anmerkungen.",
+      "Benutzer-Authentifizierung via Magic-Link."
+    ]
+  }
+]

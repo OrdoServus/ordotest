@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
+import { onAuthStateChanged, User, isSignInWithEmailLink, signInWithEmailLink, signOut } from "firebase/auth";
 import { auth, db } from './login/firebaseClient';
 import { doc, getDoc } from "firebase/firestore";
 import { useRouter, usePathname } from 'next/navigation';
@@ -15,9 +15,10 @@ interface AuthContextType {
   user: User | null;
   profile: ProfileData | null;
   loading: boolean;
+  logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, profile: null, loading: true });
+const AuthContext = createContext<AuthContextType>({ user: null, profile: null, loading: true, logout: async () => {} });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -26,10 +27,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
 
+  const logout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
+
   useEffect(() => {
-    // This effect handles the initial authentication and redirection.
     const handleAuth = async () => {
-      // 1. Handle Magic Link Sign-In
       if (isSignInWithEmailLink(auth, window.location.href) && !user) {
         setLoading(true);
         let email = window.localStorage.getItem('emailForSignIn');
@@ -40,33 +44,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           try {
             await signInWithEmailLink(auth, email, window.location.href);
             window.localStorage.removeItem('emailForSignIn');
-            // The onAuthStateChanged listener below will handle the user object and profile check.
           } catch (error) {
             console.error("Error signing in with email link", error);
             alert("Anmeldung fehlgeschlagen. Versuchen Sie es erneut.");
             router.push('/login');
           }
         }
-        return; // Early exit to wait for onAuthStateChanged
+        return;
       }
 
-      // 2. Listen for authentication state changes
       const unsubscribe = onAuthStateChanged(auth, async (user) => {
         if (user) {
           setUser(user);
-          // Check for user profile data in Firestore
           const userDocRef = doc(db, 'users', user.uid);
           const docSnap = await getDoc(userDocRef);
 
           if (docSnap.exists()) {
             const profileData = docSnap.data() as ProfileData;
             setProfile(profileData);
-            // If essential profile data is missing, redirect to profile page
             if (!profileData.name && pathname !== '/profile') {
               router.push('/profile');
             }
           } else {
-            // No profile found, redirect to create one
             setProfile(null);
             if (pathname !== '/profile') {
               router.push('/profile');
@@ -86,7 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [router, pathname, user]);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading }}>
+    <AuthContext.Provider value={{ user, profile, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );

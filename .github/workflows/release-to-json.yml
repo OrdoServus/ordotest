@@ -1,0 +1,48 @@
+name: Update Changelog JSON
+on:
+  release:
+    types: [published] # Startet, wenn du ein Release veröffentlichst
+
+jobs:
+  update-json:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Update updates.json
+        run: |
+          # Extrahiere Daten vom Release
+          VERSION="${{ github.event.release.tag_name }}"
+          DATE=$(date +%Y-%m-%d)
+          TITLE="${{ github.event.release.name }}"
+          # Die Release-Beschreibung (Body) wird als Liste formatiert
+          BODY="${{ github.event.release.body }}"
+
+          # Ein einfaches Python-Script (vorinstalliert), um das JSON sicher zu bearbeiten
+          python3 -c "
+          import json, os
+          file_path = 'updates.json'
+          new_entry = {
+              'version': '$VERSION',
+              'date': '$DATE',
+              'title': '$TITLE',
+              'changes': '$BODY'.split('\n')
+          }
+          if os.path.exists(file_path):
+              with open(file_path, 'r') as f:
+                  data = json.load(f)
+          else:
+              data = []
+          data.insert(0, new_entry) # Neuestes oben
+          with open(file_path, 'w') as f:
+              json.dump(data[:20], f, indent=2) # Behalte nur die letzten 20
+          "
+
+      - name: Commit & Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add updates.json
+          git commit -m "chore: update updates.json for version ${{ github.event.release.tag_name }}"
+          git push
