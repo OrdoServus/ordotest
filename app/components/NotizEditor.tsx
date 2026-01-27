@@ -1,5 +1,6 @@
 'use client';
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+import { Save, Check } from 'lucide-react';
 
 // Dokument interface
 interface Dokument {
@@ -24,6 +25,9 @@ interface EditorProps {
 export default function NotizEditor({ titel, inhalt, onTitelChange, onInhaltChange, onSpeichern, document: dok }: EditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const isInitialMount = useRef(true);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'idle'>('saved');
 
   // Setze den Inhalt nur beim initialen Laden oder wenn das Dokument gewechselt wird
   useEffect(() => {
@@ -36,11 +40,50 @@ export default function NotizEditor({ titel, inhalt, onTitelChange, onInhaltChan
     }
   }, [dok.id]); // Nur bei Dokument-Wechsel neu setzen
 
-  // Hilfsfunktion für execCommand - nutzt das Browser-DOM-Objekt
+  // Auto-Save mit Debounce (2 Sekunden nach letzter Änderung)
+  const triggerAutoSave = () => {
+    setSaveStatus('saving');
+    
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      onSpeichern();
+      setSaveStatus('saved');
+      
+      // Nach 2 Sekunden wieder auf 'idle' setzen
+      setTimeout(() => {
+        setSaveStatus('idle');
+      }, 2000);
+    }, 2000); // Speichert 2 Sekunden nach der letzten Änderung
+  };
+
+  // Cleanup bei Unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Hilfsfunktion für execCommand
   const exec = (cmd: string, val: string | undefined = undefined) => {
     window.document.execCommand(cmd, false, val);
-    // Fokus zurück auf den Editor setzen
     editorRef.current?.focus();
+  };
+
+  // Handler für Titel-Änderungen
+  const handleTitelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onTitelChange(e.target.value);
+    triggerAutoSave();
+  };
+
+  // Handler für Inhalt-Änderungen
+  const handleInhaltChange = (e: React.FormEvent<HTMLDivElement>) => {
+    onInhaltChange(e.currentTarget.innerHTML);
+    triggerAutoSave();
   };
 
   // Handler für Textfarbe
@@ -56,191 +99,241 @@ export default function NotizEditor({ titel, inhalt, onTitelChange, onInhaltChan
   // Handler für Formatierung
   const handleFormat = (e: React.ChangeEvent<HTMLSelectElement>) => {
     exec('formatBlock', e.target.value);
-    e.target.value = 'p'; // Reset zur Standardauswahl
+    e.target.value = 'p';
   };
 
-  // Toolbar für den Notiz-Editor
+  // Render Save-Status
+  const renderSaveStatus = () => {
+    if (saveStatus === 'saving') {
+      return (
+        <div style={styles.saveStatus}>
+          <Save size={14} className="spin" />
+          <span>Speichert...</span>
+        </div>
+      );
+    }
+    if (saveStatus === 'saved') {
+      return (
+        <div style={styles.saveStatusSaved}>
+          <Check size={14} />
+          <span>Gespeichert</span>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Toolbar
   const toolbar = (
     <div style={styles.toolbarStyle}>
-      {/* Rückgängig/Wiederholen */}
-      <button 
-        onClick={() => exec('undo')} 
-        title="Rückgängig (Strg+Z)" 
-        style={styles.buttonStyle}
-      >
-        ↩️
-      </button>
-      <button 
-        onClick={() => exec('redo')} 
-        title="Wiederholen (Strg+Y)" 
-        style={styles.buttonStyle}
-      >
-        ↪️
-      </button>
-      
-      <div style={styles.sep}></div>
-      
-      {/* Textformat */}
-      <select 
-        onChange={handleFormat} 
-        style={styles.selectStyle}
-        defaultValue="p"
-      >
-        <option value="p">Normaler Text</option>
-        <option value="h1">Titel (groß)</option>
-        <option value="h2">Zwischentitel</option>
-        <option value="h3">Untertitel</option>
-        <option value="blockquote">Zitat</option>
-      </select>
-      
-      <div style={styles.sep}></div>
-      
-      {/* Textstile */}
-      <button 
-        onClick={() => exec('bold')} 
-        title="Fett (Strg+B)" 
-        style={styles.buttonStyle}
-      >
-        <b>B</b>
-      </button>
-      <button 
-        onClick={() => exec('italic')} 
-        title="Kursiv (Strg+I)" 
-        style={styles.buttonStyle}
-      >
-        <i>I</i>
-      </button>
-      <button 
-        onClick={() => exec('underline')} 
-        title="Unterstrichen (Strg+U)" 
-        style={styles.buttonStyle}
-      >
-        <u>U</u>
-      </button>
-      <button 
-        onClick={() => exec('strikeThrough')} 
-        title="Durchgestrichen" 
-        style={styles.buttonStyle}
-      >
-        <s>S</s>
-      </button>
-      
-      <div style={styles.sep}></div>
-      
-      {/* Farben */}
-      <input 
-        type="color" 
-        title="Textfarbe ändern" 
-        onChange={handleTextColor} 
-        style={styles.colorStyle} 
-        defaultValue="#000000"
-      />
-      <button 
-        onClick={handleHighlight} 
-        title="Textmarker (Gelb)" 
-        style={styles.buttonStyle}
-      >
-        🖍️
-      </button>
-      
-      <div style={styles.sep}></div>
-      
-      {/* Ausrichtung */}
-      <button 
-        onClick={() => exec('justifyLeft')} 
-        title="Linksbündig" 
-        style={styles.buttonStyle}
-      >
-        ≡
-      </button>
-      <button 
-        onClick={() => exec('justifyCenter')} 
-        title="Zentriert" 
-        style={styles.buttonStyle}
-      >
-        ≣
-      </button>
-      <button 
-        onClick={() => exec('justifyRight')} 
-        title="Rechtsbündig" 
-        style={styles.buttonStyle}
-      >
-        ≣
-      </button>
-      
-      <div style={styles.sep}></div>
-      
-      {/* Listen */}
-      <button 
-        onClick={() => exec('insertUnorderedList')} 
-        title="Aufzählung" 
-        style={styles.buttonStyle}
-      >
-        • Liste
-      </button>
-      <button 
-        onClick={() => exec('insertOrderedList')} 
-        title="Nummerierte Liste" 
-        style={styles.buttonStyle}
-      >
-        1. Liste
-      </button>
-      
-      <div style={styles.sep}></div>
-      
-      {/* Einrückung */}
-      <button 
-        onClick={() => exec('indent')} 
-        title="Einrücken" 
-        style={styles.buttonStyle}
-      >
-        →
-      </button>
-      <button 
-        onClick={() => exec('outdent')} 
-        title="Ausrücken" 
-        style={styles.buttonStyle}
-      >
-        ←
-      </button>
-      
-      <div style={styles.sep}></div>
-      
-      {/* Weitere Funktionen */}
-      <button 
-        onClick={() => exec('removeFormat')} 
-        title="Formatierung entfernen" 
-        style={styles.buttonStyle}
-      >
-        🧹
-      </button>
+      <div style={styles.toolbarLeft}>
+        {/* Rückgängig/Wiederholen */}
+        <div style={styles.buttonGroup}>
+          <button 
+            onClick={() => exec('undo')} 
+            title="Rückgängig (Strg+Z)" 
+            style={styles.buttonStyle}
+          >
+            ↩️
+          </button>
+          <button 
+            onClick={() => exec('redo')} 
+            title="Wiederholen (Strg+Y)" 
+            style={styles.buttonStyle}
+          >
+            ↪️
+          </button>
+        </div>
+        
+        <div style={styles.sep}></div>
+        
+        {/* Textformat */}
+        <select 
+          onChange={handleFormat} 
+          style={styles.selectStyle}
+          defaultValue="p"
+        >
+          <option value="p">Normaler Text</option>
+          <option value="h1">Titel (groß)</option>
+          <option value="h2">Zwischentitel</option>
+          <option value="h3">Untertitel</option>
+          <option value="blockquote">Zitat</option>
+        </select>
+        
+        <div style={styles.sep}></div>
+        
+        {/* Textstile */}
+        <div style={styles.buttonGroup}>
+          <button 
+            onClick={() => exec('bold')} 
+            title="Fett (Strg+B)" 
+            style={styles.buttonStyle}
+          >
+            <b>B</b>
+          </button>
+          <button 
+            onClick={() => exec('italic')} 
+            title="Kursiv (Strg+I)" 
+            style={styles.buttonStyle}
+          >
+            <i>I</i>
+          </button>
+          <button 
+            onClick={() => exec('underline')} 
+            title="Unterstrichen (Strg+U)" 
+            style={styles.buttonStyle}
+          >
+            <u>U</u>
+          </button>
+          <button 
+            onClick={() => exec('strikeThrough')} 
+            title="Durchgestrichen" 
+            style={styles.buttonStyle}
+          >
+            <s>S</s>
+          </button>
+        </div>
+        
+        <div style={styles.sep}></div>
+        
+        {/* Farben */}
+        <div style={styles.buttonGroup}>
+          <input 
+            type="color" 
+            title="Textfarbe ändern" 
+            onChange={handleTextColor} 
+            style={styles.colorStyle} 
+            defaultValue="#000000"
+          />
+          <button 
+            onClick={handleHighlight} 
+            title="Textmarker (Gelb)" 
+            style={styles.buttonStyle}
+          >
+            🖍️
+          </button>
+        </div>
+        
+        <div style={styles.sep}></div>
+        
+        {/* Ausrichtung */}
+        <div style={styles.buttonGroup}>
+          <button 
+            onClick={() => exec('justifyLeft')} 
+            title="Linksbündig" 
+            style={styles.buttonStyle}
+          >
+            ≡
+          </button>
+          <button 
+            onClick={() => exec('justifyCenter')} 
+            title="Zentriert" 
+            style={styles.buttonStyle}
+          >
+            ≣
+          </button>
+          <button 
+            onClick={() => exec('justifyRight')} 
+            title="Rechtsbündig" 
+            style={styles.buttonStyle}
+          >
+            ≡
+          </button>
+        </div>
+        
+        <div style={styles.sep}></div>
+        
+        {/* Listen */}
+        <div style={styles.buttonGroup}>
+          <button 
+            onClick={() => exec('insertUnorderedList')} 
+            title="Aufzählung" 
+            style={styles.buttonStyle}
+          >
+            • Liste
+          </button>
+          <button 
+            onClick={() => exec('insertOrderedList')} 
+            title="Nummerierte Liste" 
+            style={styles.buttonStyle}
+          >
+            1. Liste
+          </button>
+        </div>
+        
+        <div style={styles.sep}></div>
+        
+        {/* Einrückung */}
+        <div style={styles.buttonGroup}>
+          <button 
+            onClick={() => exec('indent')} 
+            title="Einrücken" 
+            style={styles.buttonStyle}
+          >
+            →
+          </button>
+          <button 
+            onClick={() => exec('outdent')} 
+            title="Ausrücken" 
+            style={styles.buttonStyle}
+          >
+            ←
+          </button>
+        </div>
+        
+        <div style={styles.sep}></div>
+        
+        {/* Weitere Funktionen */}
+        <button 
+          onClick={() => exec('removeFormat')} 
+          title="Formatierung entfernen" 
+          style={styles.buttonStyle}
+        >
+          🧹
+        </button>
+      </div>
+
+      {/* Save-Status rechts */}
+      <div style={styles.toolbarRight}>
+        {renderSaveStatus()}
+      </div>
     </div>
   );
 
-  // RENDER NOTIZBUCH EDITOR (ONE-NOTE-STIL)
+  // RENDER
   return (
-    <div style={styles.editorContainer}>
-      {toolbar}
-      <div style={styles.notizEditorWrapper}>
-        <input 
-          type="text" 
-          value={titel}
-          onChange={(e) => onTitelChange(e.target.value)}
-          onBlur={onSpeichern}
-          placeholder="Seitentitel..."
-          style={styles.notizTitelInput}
-        />
-        <div 
-          ref={editorRef}
-          contentEditable 
-          spellCheck={true}
-          suppressContentEditableWarning
-          onInput={(e) => onInhaltChange(e.currentTarget.innerHTML)}
-          onBlur={onSpeichern}
-          style={styles.notizEditorArea}
-        />
+    <>
+      <style jsx global>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
+      
+      <div style={styles.editorContainer}>
+        {toolbar}
+        <div style={styles.notizEditorWrapper}>
+          <input 
+            type="text" 
+            value={titel}
+            onChange={handleTitelChange}
+            placeholder="Seitentitel..."
+            style={styles.notizTitelInput}
+          />
+          <div 
+            ref={editorRef}
+            contentEditable 
+            spellCheck={true}
+            suppressContentEditableWarning
+            onInput={handleInhaltChange}
+            style={styles.notizEditorArea}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -250,86 +343,137 @@ const styles: { [key: string]: React.CSSProperties } = {
     flex: 1, 
     display: 'flex', 
     flexDirection: 'column', 
-    backgroundColor: '#f1f3f4', 
+    backgroundColor: '#fafbfc', 
     overflowY: 'auto',
     height: '100%',
   },
   toolbarStyle: { 
     display: 'flex', 
-    gap: '5px', 
-    padding: '8px 20px', 
-    background: '#f8f9fa', 
-    borderBottom: '1px solid #ddd', 
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: '8px', 
+    padding: '10px 24px', 
+    background: 'linear-gradient(to bottom, #ffffff, #f8f9fa)', 
+    borderBottom: '1px solid #e1e4e8', 
+    flexWrap: 'wrap',
     flexShrink: 0,
     position: 'sticky' as 'sticky',
     top: 0,
     zIndex: 10,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+  },
+  toolbarLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  toolbarRight: {
+    display: 'flex',
+    alignItems: 'center',
+    marginLeft: 'auto',
+  },
+  buttonGroup: {
+    display: 'flex',
+    gap: '2px',
+    backgroundColor: '#f6f8fa',
+    borderRadius: '6px',
+    padding: '2px',
+    border: '1px solid #e1e4e8',
   },
   sep: { 
     width: '1px', 
-    height: '20px', 
-    background: '#ccc', 
-    margin: '0 5px' 
+    height: '24px', 
+    background: '#e1e4e8', 
+    margin: '0 4px',
   },
   buttonStyle: {
-    padding: '5px 10px',
+    padding: '6px 12px',
     cursor: 'pointer',
-    backgroundColor: 'white',
-    border: '1px solid #ddd',
+    backgroundColor: 'transparent',
+    border: 'none',
     borderRadius: '4px',
-    fontSize: '0.9rem',
-    minWidth: '35px',
-    height: '35px',
+    fontSize: '0.95rem',
+    minWidth: '36px',
+    height: '36px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'all 0.2s ease',
+    transition: 'all 0.15s ease',
+    color: '#24292f',
+    fontWeight: '500',
   },
   selectStyle: {
-    padding: '5px 10px',
-    borderRadius: '4px',
-    border: '1px solid #ddd',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    border: '1px solid #e1e4e8',
     backgroundColor: 'white',
     cursor: 'pointer',
     fontSize: '0.9rem',
-    height: '35px',
+    height: '36px',
+    color: '#24292f',
+    fontWeight: '500',
   },
   colorStyle: {
-    width: '35px',
-    height: '35px',
-    padding: '2px',
-    border: '1px solid #ddd',
+    width: '36px',
+    height: '36px',
+    padding: '3px',
+    border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
-    backgroundColor: 'white',
+    backgroundColor: 'transparent',
+  },
+  saveStatus: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    backgroundColor: '#fff3cd',
+    color: '#856404',
+    fontSize: '0.85rem',
+    fontWeight: '500',
+  },
+  saveStatusSaved: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    backgroundColor: '#d4edda',
+    color: '#155724',
+    fontSize: '0.85rem',
+    fontWeight: '500',
   },
   notizEditorWrapper: {
     width: '100%',
-    maxWidth: '960px',
+    maxWidth: '900px',
     margin: '0 auto',
-    padding: '30px 40px',
+    padding: '48px 60px',
     flex: 1,
+    backgroundColor: 'white',
+    minHeight: 'calc(100vh - 120px)',
+    boxShadow: '0 0 0 1px rgba(0,0,0,0.05)',
   },
   notizTitelInput: {
     width: '100%',
-    fontSize: '2.2rem',
+    fontSize: '2.5rem',
     border: 'none',
     outline: 'none',
-    marginBottom: '20px',
-    color: '#343a40',
-    paddingBottom: '10px',
-    borderBottom: '1px solid #e9ecef',
-    fontWeight: '600',
+    marginBottom: '32px',
+    color: '#1a1a1a',
+    paddingBottom: '16px',
+    borderBottom: '2px solid #e1e4e8',
+    fontWeight: '700',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    letterSpacing: '-0.02em',
   },
   notizEditorArea: {
-    minHeight: 'calc(100vh - 250px)', 
+    minHeight: 'calc(100vh - 300px)', 
     outline: 'none',
-    fontSize: '1.1rem',
-    lineHeight: '1.8',
-    color: '#333',
+    fontSize: '1.125rem',
+    lineHeight: '1.75',
+    color: '#24292f',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   }
 };

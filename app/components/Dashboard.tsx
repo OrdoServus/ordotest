@@ -86,8 +86,7 @@ export default function Dashboard({ dokumente, onNeuGottesdienst, onNeuNotiz }: 
 // --- STYLES ---
 const containerStyle: React.CSSProperties = {
   flex: 1, padding: '60px', backgroundColor: '#f9f9fb',
-  display: 'flex', flexDirection: 'column', alignItems: 'center',
-  minHeight: '100vh' // Stellt sicher, dass der Container die volle Höhe hat
+  display: 'flex', flexDirection: 'column', alignItems: 'center'
 };
 
 const headerStyle: React.CSSProperties = { textAlign: 'center', marginBottom: '50px', width: '100%' };
@@ -95,7 +94,7 @@ const headerStyle: React.CSSProperties = { textAlign: 'center', marginBottom: '5
 const gridStyle: React.CSSProperties = {
   display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
   gap: '30px', width: '100%', maxWidth: '1000px',
-  flexGrow: 1 // Lässt den Grid-Bereich wachsen
+  marginBottom: '50px' // Abstand zum Footer hinzugefügt
 };
 
 const cardStyle: React.CSSProperties = {
@@ -118,12 +117,11 @@ const btnStyle = (color: string) => ({
 });
 
 const footerStyle: React.CSSProperties = {
-  width: '100%',
-  marginTop: 'auto', // Schiebt den Footer nach unten
   padding: '40px 20px', 
   textAlign: 'center', 
   backgroundColor: '#2c3e50', 
-  color: 'white'
+  color: 'white',
+  width: '100vw' // Ensure footer spans the full width
 };
 
 const footerLinkStyle: React.CSSProperties = {
@@ -137,7 +135,7 @@ const bannerStyle: React.CSSProperties = {
   padding: '15px',
   marginBottom: '30px',
   textAlign: 'center',
-  color: '#2c50',
+  color: '#2c3e50',
   fontSize: '1rem',
   width: '100%',
   maxWidth: '1000px'
