@@ -1,11 +1,11 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation'; // Import useSearchParams
+import { useSearchParams } from 'next/navigation';
 import { db } from '../login/firebaseClient';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDoc, serverTimestamp, query, orderBy, where } from "firebase/firestore";
 
 import Sidebar from '../components/Sidebar';
-import Editor from '../components/Editor';
+import GottesdienstEditor from '../components/GottesdienstEditor'; // Geändert
 
 // TypeScript-Interfaces
 interface Dokument {
@@ -24,7 +24,6 @@ export default function GottesdienstePage() {
   const [dokumente, setDokumente] = useState<Dokument[]>([]);
   const [aktuelleId, setAktuelleId] = useState<string | null>(null);
 
-  // Set initial document from URL
   useEffect(() => {
     const docId = searchParams.get('doc');
     if (docId) {
@@ -32,7 +31,6 @@ export default function GottesdienstePage() {
     }
   }, [searchParams]);
 
-  // Fetch data from Firestore
   useEffect(() => {
     if (user) {
       const userDocsCollection = collection(db, 'users', user.uid, 'dokumente');
@@ -40,7 +38,6 @@ export default function GottesdienstePage() {
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const docs = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as Omit<Dokument, 'id'>) }));
         setDokumente(docs);
-        // If no document is selected, and there are documents, select the first one.
         if (!aktuelleId && docs.length > 0 && !searchParams.get('doc')) {
           // setAktuelleId(docs[0].id);
         }
@@ -116,7 +113,7 @@ export default function GottesdienstePage() {
         />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {aktuelleId && aktuellesDoc ? (
-            <Editor
+            <GottesdienstEditor // Geändert
               key={aktuelleId}
               titel={aktuellesDoc.titel}
               inhalt={aktuellesDoc.inhalt}

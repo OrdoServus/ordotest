@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '../login/firebaseClient';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, where, getDocs, writeBatch } from "firebase/firestore";
 
-import Editor from '../components/Editor';
+import NotizEditor from '../components/NotizEditor'; // Geändert
 import NotebooksColumn from '../components/NotebooksColumn';
 import SectionsAndPagesColumn from '../components/SectionsAndPagesColumn';
 import ContextMenu from '../components/ContextMenu';
@@ -188,7 +188,7 @@ export default function NotizenPage() {
   const renderMainContent = () => {
     if (activePageId && activePage) {
       return (
-        <Editor
+        <NotizEditor // Geändert
           key={activePageId}
           titel={activePage.titel}
           inhalt={activePage.inhalt}
