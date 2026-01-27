@@ -11,7 +11,7 @@ interface ChangelogEntry {
 
 // The URL to your raw updates.json on GitHub.
 // !! IMPORTANT !! Replace DEIN_NUTZERNAME and DEIN_REPO with your actual GitHub username and repository name.
-const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/OrdoServus/ordotest/main/updates.json';
+const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/OrdoServus/ordotest/refs/heads/main/public/updates.json?token=GHSAT0AAAAAADOG4RMUSD37OG7ZHW6R6FZE2LYVNNA';
 
 const WhatsNewPage: React.FC = () => {
   const [updates, setUpdates] = useState<ChangelogEntry[]>([]);
