@@ -1,192 +1,155 @@
-'use client';
 import React from 'react';
 import Link from 'next/link';
-import { useAuth } from '../AuthContext'; // Import useAuth to get profile info
+import WhatsNew from '../info/WhatsNew';
 
-// Define the expected props based on page.tsx
-interface SidebarProps {
-  dokumente: any[];
-  aktuelleId: string | null;
-  onWähleDokument: (id: string) => void;
-  onNeu: () => void;
-  onLöschen: (id: string) => void;
-  onKopieren: (id: string) => void;
-  onFavorit: (id: string) => void;
-}
+const Sidebar = ({ dokumente, aktuelleId, onWähleDokument, onNeuGottesdienst, onNeuNotiz, onLöschen, onKopieren, onFavorit }) => {
 
-export default function Sidebar({ dokumente, aktuelleId, onWähleDokument, onNeu, onLöschen, onKopieren, onFavorit }: SidebarProps) {
-  const { profile } = useAuth(); // Get user profile
+    // Filter documents by type
+    const gottesdienste = dokumente.filter(d => d.typ === 'gottesdienst');
+    const notizen = dokumente.filter(d => d.typ === 'notiz');
 
-  const formatDate = (timestamp: any) => {
-    if (!timestamp || !timestamp.toDate) return '';
-    return new Date(timestamp.toDate()).toLocaleDateString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
+    // Helper to render the list of documents
+    const renderDocList = (docs) => {
+        return docs.map(d => (
+            <li key={d.id} style={d.id === aktuelleId ? styles.listItemAktiv : styles.listItem}>
+                <span onClick={() => onWähleDokument(d.id)} style={styles.titel}>
+                    {d.titel || 'Unbenannt'}
+                </span>
+                <div style={styles.aktionen}>
+                    <button onClick={(e) => { e.stopPropagation(); onFavorit(d.id); }} style={styles.button}>{d.isFavorit ? '★' : '☆'}</button>
+                    <button onClick={(e) => { e.stopPropagation(); onKopieren(d.id); }} style={styles.button}>⎘</button>
+                    <button onClick={(e) => { e.stopPropagation(); onLöschen(d.id); }} style={styles.button}>🗑</button>
+                </div>
+            </li>
+        ));
+    };
 
-  return (
-    <aside style={styles.sidebar}>
-      {/* Header */}
-      <div style={styles.header}>
-        <h3 style={styles.headerTitle}>OrdoServus</h3>
-        <p style={styles.headerSubtitle}>Ihr liturgischer Assistent</p>
-        <button onClick={onNeu} style={styles.neuButton}>
-          + Neuer Dienst
-        </button>
-      </div>
-
-      {/* Dokumente Liste */}
-      <div style={styles.docList}>
-        {dokumente.map((doc: any) => (
-          <div 
-            key={doc.id} 
-            style={styles.docItem(aktuelleId === doc.id)}
-          >
-            <div style={styles.docItemInfo} onClick={() => onWähleDokument(doc.id)}>
-              <div style={styles.docTitle}>{doc.titel || 'Unbenannt'}</div>
-              <div style={styles.docDate}>{formatDate(doc.datum)}</div>
+    return (
+        <div style={styles.sidebar}>
+            {/* Services Section */}
+            <div style={styles.section}>
+                <div style={styles.sectionHeader}>
+                    <h2 style={styles.h2}>Gottesdienste</h2>
+                    <button onClick={onNeuGottesdienst} style={styles.neuButton}>+</button>
+                </div>
+                <ul style={styles.liste}>
+                    {renderDocList(gottesdienste)}
+                </ul>
             </div>
-            <div style={styles.docActions}>
-              <button onClick={(e) => { e.stopPropagation(); onFavorit(doc.id); }} style={styles.actionButton} title="Favorit">{doc.isFavorit ? '⭐' : '☆'}</button>
-              <button onClick={(e) => { e.stopPropagation(); onKopieren(doc.id); }} style={styles.actionButton} title="Kopieren">📄</button>
-              <button onClick={(e) => { e.stopPropagation(); onLöschen(doc.id); }} style={styles.actionButton} title="Löschen">🗑️</button>
+
+            {/* Notes Section */}
+            <div style={{...styles.section, marginTop: '20px'}}>
+                <div style={styles.sectionHeader}>
+                    <h2 style={styles.h2}>Notizbuch</h2>
+                    <button onClick={onNeuNotiz} style={styles.neuButton}>+</button>
+                </div>
+                <ul style={styles.liste}>
+                    {renderDocList(notizen)}
+                </ul>
             </div>
-          </div>
-        ))}
-      </div>
 
-      {/* Footer mit Profil & Einstellungen */}
-      <div style={styles.footer}>
-        <div style={styles.profileSection}>
-          <div style={styles.profileInfo}>
-            <div style={styles.profileName}>{profile?.name || 'Benutzer'}</div>
-            <div style={styles.profileFunction}>{profile?.funktion || 'Keine Funktion'}</div>
-          </div>
-          <Link href="/profile" style={styles.settingsButton} title="Einstellungen">
-            ⚙️
-          </Link>
+            {/* Footer with version info */}
+            <div style={styles.footer}>
+                <span>OrdoServus v1.0</span>
+                <WhatsNew />
+            </div>
         </div>
-        <div style={styles.copyright}>
-          © {new Date().getFullYear()} OrdoServus
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-// Moderneres Styling
-const styles = {
-  sidebar: {
-    width: '320px',
-    backgroundColor: '#f8f9fa',
-    borderRight: '1px solid #dee2e6',
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%'
-  } as React.CSSProperties,
-  header: {
-    padding: '20px',
-    backgroundColor: '#2c3e50',
-    color: 'white'
-  },
-  headerTitle: {
-    margin: '0 0 5px 0',
-    fontSize: '1.2rem'
-  },
-  headerSubtitle: {
-    margin: '0 0 15px 0',
-    fontSize: '0.9rem',
-    opacity: 0.8
-  },
-  neuButton: {
-    width: '100%',
-    padding: '10px',
-    backgroundColor: '#3498db',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    fontSize: '0.9rem',
-    textAlign: 'center' as const
-  },
-  docList: {
-    flex: 1,
-    overflowY: 'auto' as const
-  },
-  docItem: (isActive: boolean) => ({
-    padding: '12px 10px 12px 15px',
-    cursor: 'pointer',
-    borderBottom: '1px solid #eee',
-    backgroundColor: isActive ? '#e9ecef' : 'transparent',
-    borderLeft: isActive ? '4px solid #3498db' : '4px solid transparent',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    transition: 'background-color 0.2s ease'
-  }),
-  docItemInfo: {
-    flex: 1,
-    paddingRight: '10px',
-  },
-  docTitle: {
-    fontWeight: '500' as const,
-    fontSize: '0.95rem',
-    color: '#34495e',
-    whiteSpace: 'nowrap' as const,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis'
-  },
-  docDate: {
-    fontSize: '0.8rem',
-    color: '#7f8c8d',
-    marginTop: '3px'
-  },
-  docActions: {
-    display: 'flex',
-    alignItems: 'center'
-  },
-  actionButton: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '1.1rem',
-    padding: '5px',
-    opacity: 0.6,
-    transition: 'opacity 0.2s, transform 0.2s'
-  } as React.CSSProperties,
-  footer: {
-    padding: '15px 20px',
-    borderTop: '1px solid #dee2e6',
-    backgroundColor: '#f1f3f5'
-  },
-  profileSection: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '10px'
-  },
-  profileInfo: {},
-  profileName: {
-    fontWeight: 'bold' as const,
-    color: '#2c3e50'
-  },
-  profileFunction: {
-    fontSize: '0.85rem',
-    color: '#7f8c8d'
-  },
-  settingsButton: {
-    fontSize: '1.6rem',
-    textDecoration: 'none' as const,
-    color: '#5f6368',
-    opacity: 0.8,
-    transition: 'opacity 0.2s ease'
-  },
-  copyright: {
-    fontSize: '0.75rem',
-    color: '#9aa0a6',
-    textAlign: 'center' as const
-  }
+    );
 };
+
+const styles: { [key: string]: React.CSSProperties } = {
+    sidebar: {
+        width: '300px',
+        height: '100%',
+        backgroundColor: '#f9f9fb',
+        borderRight: '1px solid #eee',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+    },
+    section: {
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    sectionHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '15px',
+    },
+    h2: {
+        fontSize: '1.1rem',
+        color: '#2c3e50',
+        margin: 0,
+    },
+    neuButton: {
+        backgroundColor: '#ef5c22',
+        color: 'white',
+        border: 'none',
+        borderRadius: '50%',
+        width: '28px',
+        height: '28px',
+        fontSize: '1.2rem',
+        cursor: 'pointer',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    liste: {
+        listStyle: 'none',
+        padding: 0,
+        margin: 0,
+        overflowY: 'auto',
+    },
+    listItem: {
+        padding: '10px 12px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '5px',
+        border: '1px solid transparent',
+    },
+    listItemAktiv: {
+        padding: '10px 12px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '5px',
+        backgroundColor: '#fff',
+        border: '1px solid #ddd',
+        fontWeight: 'bold',
+    },
+    titel: {
+        flex: 1,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
+    aktionen: {
+        display: 'flex',
+        alignItems: 'center',
+    },
+    button: {
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '5px',
+        fontSize: '1rem',
+        color: '#7f8c8d'
+    },
+    footer: {
+        borderTop: '1px solid #eee',
+        paddingTop: '15px',
+        marginTop: '20px',
+        fontSize: '0.8rem',
+        color: '#7f8c8d',
+        textAlign: 'center',
+    },
+};
+
+export default Sidebar;

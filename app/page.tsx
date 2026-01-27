@@ -48,7 +48,7 @@ export default function Home() {
       await updateDoc(docRef, { [feld]: wert });
   }, [user, aktuelleId]);
 
-  const erstelleNeues = async () => {
+  const erstelleNeuenGottesdienst = async () => {
     if (!user) return;
     const userDocsCollection = collection(db, 'users', user.uid, 'dokumente');
     const neu = {
@@ -57,6 +57,20 @@ export default function Home() {
       datum: serverTimestamp(),
       isFavorit: false,
       typ: 'gottesdienst'
+    };
+    const newDocRef = await addDoc(userDocsCollection, neu);
+    setAktuelleId(newDocRef.id);
+  };
+
+  const erstelleNeueNotiz = async () => {
+    if (!user) return;
+    const userDocsCollection = collection(db, 'users', user.uid, 'dokumente');
+    const neu = {
+        titel: 'Neue Notiz',
+        inhalt: '# Neue Notiz\n\n',
+        datum: serverTimestamp(),
+        isFavorit: false,
+        typ: 'notiz'
     };
     const newDocRef = await addDoc(userDocsCollection, neu);
     setAktuelleId(newDocRef.id);
@@ -107,7 +121,8 @@ export default function Home() {
         dokumente={dokumente}
         aktuelleId={aktuelleId}
         onWähleDokument={setAktuelleId}
-        onNeu={erstelleNeues}
+        onNeuGottesdienst={erstelleNeuenGottesdienst}
+        onNeuNotiz={erstelleNeueNotiz}
         onLöschen={handleLöschen}
         onKopieren={handleKopieren}
         onFavorit={handleFavorit}
@@ -128,7 +143,7 @@ export default function Home() {
           <Dashboard
             dokumente={dokumente}
             onWähleDokument={setAktuelleId}
-            onNeu={erstelleNeues}
+            onNeu={erstelleNeuenGottesdienst} // For now, the dashboard button creates a service
           />
         )}
       </div>

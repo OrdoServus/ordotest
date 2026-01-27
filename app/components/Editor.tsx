@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import { ordoFileService } from './ordoFileSystem';
+import VorlagenMenu from './VorlagenMenu';
 
 interface EditorProps {
   titel: string;
@@ -11,45 +12,38 @@ interface EditorProps {
   document: any;
 }
 
-const VORLAGEN = {
-  messe: `<h2>Heilige Messe</h2>
-          <p><b>Einzug:</b> </p>
-          <p><b>Kyrie:</b> </p>
-          <p><b>Tagesgebet:</b> </p>
-          <p><b>Lesung:</b> </p>
-          <p><b>Evangelium:</b> </p>
-          <p><b>Fürbitten:</b> </p>
-          <p><b>Segen:</b> </p>`,
-  andacht: `<h2>Andacht / Gebetsstunde</h2>
-            <p><b>Eröffnung:</b> </p>
-            <p><b>Impuls:</b> </p>
-            <p><b>Stille:</b> </p>
-            <p><b>Vaterunser:</b> </p>
-            <p><b>Segen:</b> </p>`,
-  taufe: `<h2>Tauffeier</h2>
-          <p><b>Begrüßung:</b> </p>
-          <p><b>Wortgottesdienst:</b> </p>
-          <p><b>Taufspendung:</b> </p>
-          <p><b>Abschluss:</b> </p>`
-};
-
 export default function Editor({ titel, inhalt, onTitelChange, onInhaltChange, onSpeichern, document }: EditorProps) {
   const exec = (cmd: string, val: string | undefined = undefined) => {
     document.execCommand(cmd, false, val);
   };
-
-  const handleVorlage = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const wahl = e.target.value as keyof typeof VORLAGEN;
-    if (wahl && VORLAGEN[wahl]) {
-      if (confirm("Möchten Sie diese Vorlage laden? Ihr aktueller Text wird ersetzt.")) {
-        onInhaltChange(VORLAGEN[wahl]);
-      }
-    }
-    e.target.value = ""; // Reset Auswahl
+    
+  const handlePrint = () => {
+    window.print();
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#f1f3f4' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#f1f3f4' }} className="editor-container">
+      
+      {/* --- PRINT STYLES --- */}
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .printable-area, .printable-area * {
+            visibility: visible;
+          }
+          .printable-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .editor-container, .sidebar, header {
+            display: none !important;
+          }
+        }
+      `}</style>
       
       {/* --- TOOLBAR --- */}
       <div style={toolbarStyle}>
@@ -87,15 +81,12 @@ export default function Editor({ titel, inhalt, onTitelChange, onInhaltChange, o
         {/* Listen */}
         <button onClick={() => exec('insertUnorderedList')} style={buttonStyle}>• Liste</button>
 
-        <div style={sep}></div>
-
-        {/* Vorlagen */}
-        <select onChange={handleVorlage} style={selectStyle}>
-          <option value="">📄 Vorlage...</option>
-          <option value="messe">Heilige Messe</option>
-          <option value="andacht">Andacht</option>
-          <option value="taufe">Taufe</option>
-        </select>
+        {document.typ === 'gottesdienst' && (
+          <>
+            <div style={sep}></div>
+            <VorlagenMenu onVorlageWählen={onInhaltChange} />
+          </>
+        )}
 
         <div style={sep}></div>
 
@@ -121,24 +112,24 @@ export default function Editor({ titel, inhalt, onTitelChange, onInhaltChange, o
             }
           }
         }} style={buttonStyle}>🔍</button>
-        <button onClick={() => window.print()} style={{ ...buttonStyle, backgroundColor: '#2c3e50', color: 'white' }}>🖨️ PDF</button>
+        <button onClick={handlePrint} style={{ ...buttonStyle, backgroundColor: '#2c3e50', color: 'white' }}>🖨️ PDF</button>
         <button 
           onClick={() => ordoFileService.export(inhalt)}
           title="Als .ordo Datei speichern"
-          style={toolbarStyle}
+          style={buttonStyle}
         >
           💾 .ordo Export
         </button>
       </div>
 
       {/* --- SCHREIBBEREICH --- */}
-      <div style={{ padding: '40px', overflowY: 'auto', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ padding: '40px', overflowY: 'auto', display: 'flex', justifyContent: 'center' }} className="printable-area">
         <div style={paperStyle}>
           <input 
             type="text" 
             value={titel}
             onChange={(e) => onTitelChange(e.target.value)}
-            placeholder="Titel des Gottesdienstes..."
+            placeholder={document.typ === 'gottesdienst' ? "Titel des Gottesdienstes..." : "Titel der Notiz..."}
             style={titelInputStyle}
           />
 
