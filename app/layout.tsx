@@ -1,6 +1,7 @@
 
 import React from 'react';
-import Navbar from './components/Navbar'; // Stellen Sie sicher, dass der Pfad korrekt ist
+import Navbar from './components/Navbar';
+import { AuthProvider } from './AuthContext'; // Importiere den AuthProvider
 
 export const metadata = {
   title: 'OrdoServus',
@@ -11,10 +12,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="de" style={{ height: '100%' }}>
       <body style={{ margin: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Navbar />
-        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-          {children}
-        </main>
+        <AuthProvider> {/* Umschließe die gesamte App mit dem AuthProvider */}
+          <Navbar />
+          <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+            {children}
+          </main>
+        </AuthProvider>
       </body>
     </html>
   );
