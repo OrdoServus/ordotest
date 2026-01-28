@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../login/supabaseClient';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../AuthContext';
 import Dashboard from '../components/Dashboard';
 
 interface Dokument {
@@ -14,9 +15,15 @@ interface Dokument {
 }
 
 export default function DashboardPage() {
-  const user = { uid: 'test-user-id' }; // Mock user
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [dokumente, setDokumente] = useState<Dokument[]>([]);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     if (user) {
@@ -24,7 +31,7 @@ export default function DashboardPage() {
         const { data, error } = await supabase
           .from('dokumente')
           .select('*')
-          .eq('user_id', user.uid)
+          .eq('user_id', user.id)
           .order('datum', { ascending: false });
         
         if (error) {
@@ -39,7 +46,7 @@ export default function DashboardPage() {
       // Subscribe to changes
       const subscription = supabase
         .channel('dokumente')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'dokumente', filter: `user_id=eq.${user.uid}` }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'dokumente', filter: `user_id=eq.${user.id}` }, () => {
           fetchDokumente();
         })
         .subscribe();
@@ -54,7 +61,7 @@ export default function DashboardPage() {
     if (!user) return;
     const isGottesdienst = typ === 'gottesdienst';
     const neu = {
-      user_id: user.uid,
+      user_id: user.id,
       titel: isGottesdienst ? 'Neuer Gottesdienst' : 'Neue Notiz',
       inhalt: isGottesdienst ? '# Neuer Gottesdienst\n\nFügen Sie hier Ihren Inhalt ein.' : '# Neue Notiz\n\n',
       datum: new Date().toISOString(),

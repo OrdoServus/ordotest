@@ -19,7 +19,7 @@ export default function ProfilePage() {
         const { data, error } = await supabase
           .from('users')
           .select('name, funktion')
-          .eq('id', user.uid)
+          .eq('id', user.id)
           .single();
 
         if (error) {
@@ -44,7 +44,7 @@ export default function ProfilePage() {
     try {
       const { error } = await supabase
         .from('users')
-        .upsert({ id: user.uid, name, funktion }, { onConflict: 'id' });
+        .upsert({ id: user.id, name, funktion }, { onConflict: 'id' });
 
       if (error) {
         throw error;

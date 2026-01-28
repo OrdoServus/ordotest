@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '../login/supabaseClient';
+import { useAuth } from '../AuthContext';
 
 import Sidebar from '../components/Sidebar';
 import GottesdienstEditor from '../components/GottesdienstEditor';
@@ -17,11 +18,18 @@ interface Dokument {
 }
 
 export default function GottesdienstePage() {
-  const user = { uid: 'test-user-id' };
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [dokumente, setDokumente] = useState<Dokument[]>([]);
   const [aktuelleId, setAktuelleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     const docId = searchParams.get('doc');
@@ -36,7 +44,7 @@ export default function GottesdienstePage() {
         const { data, error } = await supabase
           .from('dokumente')
           .select('*')
-          .eq('user_id', user.uid)
+          .eq('user_id', user.id)
           .eq('typ', 'gottesdienst')
           .order('datum', { ascending: false });
         
@@ -52,7 +60,7 @@ export default function GottesdienstePage() {
       // Subscribe to changes
       const subscription = supabase
         .channel('dokumente')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'dokumente', filter: `user_id=eq.${user.uid}` }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'dokumente', filter: `user_id=eq.${user.id}` }, () => {
           fetchDokumente();
         })
         .subscribe();
@@ -73,7 +81,7 @@ export default function GottesdienstePage() {
       .from('dokumente')
       .update({ [feld]: wert })
       .eq('id', aktuelleId)
-      .eq('user_id', user.uid);
+      .eq('user_id', user.id);
     
     if (error) {
       console.error('Error updating document:', error);
@@ -83,7 +91,7 @@ export default function GottesdienstePage() {
   const erstelleNeuenGottesdienst = async () => {
     if (!user) return;
     const neu = {
-      user_id: user.uid,
+      user_id: user.id,
       titel: 'Neuer Gottesdienst',
       inhalt: '# Neuer Gottesdienst\n\nFügen Sie hier Ihren Inhalt ein.',
       datum: new Date().toISOString(),
@@ -110,7 +118,7 @@ export default function GottesdienstePage() {
       .from('dokumente')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.uid);
+      .eq('user_id', user.id);
     
     if (error) {
       console.error('Error deleting document:', error);
@@ -125,7 +133,7 @@ export default function GottesdienstePage() {
       .from('dokumente')
       .select('*')
       .eq('id', id)
-      .eq('user_id', user.uid)
+      .eq('user_id', user.id)
       .single();
 
     if (fetchError || !originalData) {
@@ -158,7 +166,7 @@ export default function GottesdienstePage() {
       .from('dokumente')
       .update({ isFavorit: !dokument.isFavorit })
       .eq('id', id)
-      .eq('user_id', user.uid);
+      .eq('user_id', user.id);
 
     if (error) {
       console.error('Error updating favorite status:', error);

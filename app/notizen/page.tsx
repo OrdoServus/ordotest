@@ -1,6 +1,8 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../login/supabaseClient';
+import { useAuth } from '../AuthContext';
 
 import NotizEditor from '../components/NotizEditor';
 import NotebooksColumn from '../components/NotebooksColumn';
@@ -37,7 +39,8 @@ interface Page {
 type ContextMenuTarget = { x: number; y: number; type: 'notebook' | 'section' | 'page'; id: string; name: string; };
 
 export default function NotizenPage() {
-  const user = useMemo(() => ({ uid: 'test-user-id' }), []);
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
@@ -49,6 +52,12 @@ export default function NotizenPage() {
   
   const [contextMenu, setContextMenu] = useState<ContextMenuTarget | null>(null);
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
   // Data fetching logic
   useEffect(() => {
     if (!user) return;
@@ -58,7 +67,7 @@ export default function NotizenPage() {
       const { data: notebooksData } = await supabase
         .from('notebooks')
         .select('*')
-        .eq('user_id', user.uid)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       const fetchedNotebooks = notebooksData || [];
@@ -76,7 +85,7 @@ export default function NotizenPage() {
     // Subscribe to notebooks changes
     const notebooksSubscription = supabase
       .channel('notebooks')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notebooks', filter: `user_id=eq.${user.uid}` }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notebooks', filter: `user_id=eq.${user.id}` }, () => {
         fetchData();
       })
       .subscribe();
@@ -99,7 +108,7 @@ export default function NotizenPage() {
         .from('sections')
         .select('*')
         .eq('notebook_id', activeNotebookId)
-        .eq('user_id', user.uid)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       const fetchedSections = sectionsData || [];
@@ -166,7 +175,7 @@ export default function NotizenPage() {
         .from(tableName)
         .update({ [fieldName]: newName })
         .eq('id', id)
-        .eq('user_id', user.uid);
+        .eq('user_id', user.id);
 
       if (error) console.error('Error renaming:', error);
     }
@@ -180,7 +189,7 @@ export default function NotizenPage() {
       .from('notes')
       .delete()
       .eq('id', pageId)
-      .eq('user_id', user.uid);
+      .eq('user_id', user.id);
 
     if (error) console.error('Error deleting page:', error);
   };
@@ -193,14 +202,14 @@ export default function NotizenPage() {
       .from('notes')
       .delete()
       .eq('section_id', sectionId)
-      .eq('user_id', user.uid);
+      .eq('user_id', user.id);
 
     // Delete section
     const { error: sectionError } = await supabase
       .from('sections')
       .delete()
       .eq('id', sectionId)
-      .eq('user_id', user.uid);
+      .eq('user_id', user.id);
 
     if (pageError) console.error('Error deleting pages:', pageError);
     if (sectionError) console.error('Error deleting section:', sectionError);
@@ -217,7 +226,7 @@ export default function NotizenPage() {
       .from('sections')
       .select('id')
       .eq('notebook_id', notebookId)
-      .eq('user_id', user.uid);
+      .eq('user_id', user.id);
 
     // Delete all pages in those sections
     if (sections && sections.length > 0) {
@@ -235,14 +244,14 @@ export default function NotizenPage() {
       .from('sections')
       .delete()
       .eq('notebook_id', notebookId)
-      .eq('user_id', user.uid);
+      .eq('user_id', user.id);
 
     // Delete notebook
     const { error: notebookError } = await supabase
       .from('notebooks')
       .delete()
       .eq('id', notebookId)
-      .eq('user_id', user.uid);
+      .eq('user_id', user.id);
 
     if (sectionsError) console.error('Error deleting sections:', sectionsError);
     if (notebookError) console.error('Error deleting notebook:', notebookError);
@@ -261,7 +270,7 @@ export default function NotizenPage() {
     if (name && user) {
       const { error } = await supabase
         .from('notebooks')
-        .insert([{ name, user_id: user.uid, created_at: new Date().toISOString() }]);
+        .insert([{ name, user_id: user.id, created_at: new Date().toISOString() }]);
 
       if (error) console.error('Error creating notebook:', error);
     }
@@ -273,7 +282,7 @@ export default function NotizenPage() {
     if (name && user) {
       const { data, error } = await supabase
         .from('sections')
-        .insert([{ name, notebook_id: activeNotebookId, user_id: user.uid, created_at: new Date().toISOString() }])
+        .insert([{ name, notebook_id: activeNotebookId, user_id: user.id, created_at: new Date().toISOString() }])
         .select('id')
         .single();
 
@@ -293,7 +302,7 @@ export default function NotizenPage() {
         titel: 'Unbenannte Seite',
         inhalt: '# Neue Seite\n',
         section_id: sectionId,
-        user_id: user.uid,
+        user_id: user.id,
         isFavorit: false,
         datum: new Date().toISOString(),
       }])
@@ -324,7 +333,7 @@ export default function NotizenPage() {
       .from('notes')
       .update({ [field]: value })
       .eq('id', activePageId)
-      .eq('user_id', user.uid);
+      .eq('user_id', user.id);
 
     if (error) console.error('Error updating page:', error);
   }, [user, activePageId]);
@@ -404,3 +413,4 @@ export default function NotizenPage() {
     </div>
   );
 }
+
