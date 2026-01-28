@@ -1,8 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
-import { db } from '../login/firebaseClient';
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { supabase } from '../login/supabaseClient';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
@@ -16,14 +15,22 @@ export default function ProfilePage() {
   // Fetch existing profile data
   useEffect(() => {
     if (user) {
-      const userDocRef = doc(db, 'users', user.uid);
-      getDoc(userDocRef).then(docSnap => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
+      const fetchProfile = async () => {
+        const { data, error } = await supabase
+          .from('users')
+          .select('name, funktion')
+          .eq('id', user.uid)
+          .single();
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+        } else if (data) {
           setName(data.name || '');
           setFunktion(data.funktion || '');
         }
-      });
+      };
+
+      fetchProfile();
     }
   }, [user]);
 
@@ -35,9 +42,14 @@ export default function ProfilePage() {
     setMessage('');
 
     try {
-      const userDocRef = doc(db, 'users', user.uid);
-      // Use setDoc with merge: true to create or update the document
-      await setDoc(userDocRef, { name, funktion }, { merge: true });
+      const { error } = await supabase
+        .from('users')
+        .upsert({ id: user.uid, name, funktion }, { onConflict: 'id' });
+
+      if (error) {
+        throw error;
+      }
+
       setMessage('Profil erfolgreich gespeichert!');
       // Redirect to home after a short delay
       setTimeout(() => router.push('/'), 1500);

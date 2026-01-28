@@ -1,9 +1,8 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { db } from '../login/firebaseClient';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, where, getDocs, writeBatch } from "firebase/firestore";
+import { supabase } from '../login/supabaseClient';
 
-import NotizEditor from '../components/NotizEditor'; // Geändert
+import NotizEditor from '../components/NotizEditor';
 import NotebooksColumn from '../components/NotebooksColumn';
 import SectionsAndPagesColumn from '../components/SectionsAndPagesColumn';
 import ContextMenu from '../components/ContextMenu';
@@ -13,24 +12,24 @@ import NotebookDashboard from '../components/NotebookDashboard';
 interface Notebook {
   id: string;
   name: string;
-  userId: string;
-  createdAt: any;
+  user_id: string;
+  created_at: any;
 }
 
 interface Section {
   id: string;
   name: string;
-  notebookId: string;
-  userId: string;
-  createdAt: any;
+  notebook_id: string;
+  user_id: string;
+  created_at: any;
 }
 
 interface Page {
   id: string;
   titel: string;
   inhalt: string;
-  sectionId: string;
-  userId: string;
+  section_id: string;
+  user_id: string;
   isFavorit: boolean;
   datum: any;
 }
@@ -50,91 +49,204 @@ export default function NotizenPage() {
   
   const [contextMenu, setContextMenu] = useState<ContextMenuTarget | null>(null);
 
-  // Data fetching logic (unchanged)
+  // Data fetching logic
   useEffect(() => {
     if (!user) return;
-    const unsubNotebooks = onSnapshot(query(collection(db, 'users', user.uid, 'notebooks'), orderBy('createdAt', 'asc')), snapshot => {
-        const fetchedNotebooks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notebook));
-        setNotebooks(fetchedNotebooks);
-        if (!activeNotebookId && fetchedNotebooks.length > 0) {
-            setActiveNotebookId(fetchedNotebooks[0].id);
-        } else if (fetchedNotebooks.length === 0) {
-            setActiveNotebookId(null);
-        }
-    });
-    if (!activeNotebookId) {
-        setSections([]);
-        setPages([]);
-        return () => unsubNotebooks();
-    }
-    let unsubPages: (() => void) | undefined;
-    const unsubSections = onSnapshot(query(collection(db, 'users', user.uid, 'sections'), where('notebookId', '==', activeNotebookId), orderBy('createdAt', 'asc')), sectionSnapshot => {
-        const fetchedSections = sectionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Section));
-        setSections(fetchedSections);
-        if (fetchedSections.length > 0 && !fetchedSections.some(s => s.id === activeSectionId)) {
-            setActiveSectionId(fetchedSections[0].id);
-        } else if (fetchedSections.length === 0) {
-            setActiveSectionId(null);
-        }
-        if (unsubPages) unsubPages();
-        const sectionIds = fetchedSections.map(s => s.id);
-        if (sectionIds.length > 0) {
-            unsubPages = onSnapshot(query(collection(db, 'users', user.uid, 'notes'), where('sectionId', 'in', sectionIds), orderBy('datum', 'desc')), pageSnapshot => {
-                const fetchedPages = pageSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Page));
-                setPages(fetchedPages);
-                if (activePageId && !fetchedPages.some(p => p.id === activePageId)) {
-                    setActivePageId(null);
-                }
-            });
-        } else {
-            setPages([]);
-        }
-    });
-    return () => {
-        unsubNotebooks();
-        unsubSections();
-        if (unsubPages) unsubPages();
-    };
-}, [user, activeNotebookId]);
 
-  // Management functions (unchanged)
+    const fetchData = async () => {
+      // Fetch notebooks
+      const { data: notebooksData } = await supabase
+        .from('notebooks')
+        .select('*')
+        .eq('user_id', user.uid)
+        .order('created_at', { ascending: true });
+
+      const fetchedNotebooks = notebooksData || [];
+      setNotebooks(fetchedNotebooks as Notebook[]);
+
+      if (!activeNotebookId && fetchedNotebooks.length > 0) {
+        setActiveNotebookId(fetchedNotebooks[0].id);
+      } else if (fetchedNotebooks.length === 0) {
+        setActiveNotebookId(null);
+      }
+    };
+
+    fetchData();
+
+    // Subscribe to notebooks changes
+    const notebooksSubscription = supabase
+      .channel('notebooks')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notebooks', filter: `user_id=eq.${user.uid}` }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      notebooksSubscription.unsubscribe();
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !activeNotebookId) {
+      setSections([]);
+      setPages([]);
+      return;
+    }
+
+    const fetchSectionsAndPages = async () => {
+      // Fetch sections
+      const { data: sectionsData } = await supabase
+        .from('sections')
+        .select('*')
+        .eq('notebook_id', activeNotebookId)
+        .eq('user_id', user.uid)
+        .order('created_at', { ascending: true });
+
+      const fetchedSections = sectionsData || [];
+      setSections(fetchedSections as Section[]);
+
+      if (fetchedSections.length > 0 && !fetchedSections.some((s: any) => s.id === activeSectionId)) {
+        setActiveSectionId(fetchedSections[0].id);
+      } else if (fetchedSections.length === 0) {
+        setActiveSectionId(null);
+      }
+
+      // Fetch pages
+      if (fetchedSections.length > 0) {
+        const sectionIds = fetchedSections.map((s: any) => s.id);
+        const { data: pagesData } = await supabase
+          .from('notes')
+          .select('*')
+          .in('section_id', sectionIds)
+          .order('datum', { ascending: false });
+
+        const fetchedPages = pagesData || [];
+        setPages(fetchedPages as Page[]);
+
+        if (activePageId && !fetchedPages.some((p: any) => p.id === activePageId)) {
+          setActivePageId(null);
+        }
+      } else {
+        setPages([]);
+      }
+    };
+
+    fetchSectionsAndPages();
+
+    // Subscribe to sections changes
+    const sectionsSubscription = supabase
+      .channel('sections')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sections', filter: `notebook_id=eq.${activeNotebookId}` }, () => {
+        fetchSectionsAndPages();
+      })
+      .subscribe();
+
+    // Subscribe to notes changes
+    const notesSubscription = supabase
+      .channel('notes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, () => {
+        fetchSectionsAndPages();
+      })
+      .subscribe();
+
+    return () => {
+      sectionsSubscription.unsubscribe();
+      notesSubscription.unsubscribe();
+    };
+  }, [user, activeNotebookId, activeSectionId]);
+
+  // Management functions
   const handleRename = async (type: 'notebook' | 'section' | 'page', id: string, currentName: string) => {
     const newName = prompt(`"${currentName}" umbenennen in:`, currentName);
     if (newName && newName.trim() !== '' && user) {
-      let collectionName = type === 'notebook' ? 'notebooks' : type === 'section' ? 'sections' : 'notes';
+      let tableName = type === 'notebook' ? 'notebooks' : type === 'section' ? 'sections' : 'notes';
       let fieldName = type === 'page' ? 'titel' : 'name';
-      await updateDoc(doc(db, 'users', user.uid, collectionName, id), { [fieldName]: newName });
+      
+      const { error } = await supabase
+        .from(tableName)
+        .update({ [fieldName]: newName })
+        .eq('id', id)
+        .eq('user_id', user.uid);
+
+      if (error) console.error('Error renaming:', error);
     }
   };
+
   const handleDeletePage = async (pageId: string) => {
     if (!user || !confirm("Soll diese Seite wirklich gelöscht werden?")) return;
     if (activePageId === pageId) setActivePageId(null);
-    await deleteDoc(doc(db, 'users', user.uid, 'notes', pageId));
+    
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', pageId)
+      .eq('user_id', user.uid);
+
+    if (error) console.error('Error deleting page:', error);
   };
+
   const handleDeleteSection = async (sectionId: string) => {
     if (!user || !confirm("Soll dieses Kapitel und ALLE darin enthaltenen Seiten wirklich gelöscht werden?")) return;
-    const batch = writeBatch(db);
-    const pagesQuery = query(collection(db, 'users', user.uid, 'notes'), where('sectionId', '==', sectionId));
-    const pagesSnapshot = await getDocs(pagesQuery);
-    pagesSnapshot.forEach(doc => batch.delete(doc.ref));
-    batch.delete(doc(db, 'users', user.uid, 'sections', sectionId));
-    await batch.commit();
+    
+    // Delete all pages in section
+    const { error: pageError } = await supabase
+      .from('notes')
+      .delete()
+      .eq('section_id', sectionId)
+      .eq('user_id', user.uid);
+
+    // Delete section
+    const { error: sectionError } = await supabase
+      .from('sections')
+      .delete()
+      .eq('id', sectionId)
+      .eq('user_id', user.uid);
+
+    if (pageError) console.error('Error deleting pages:', pageError);
+    if (sectionError) console.error('Error deleting section:', sectionError);
+    
     if (activeSectionId === sectionId) setActiveSectionId(null);
     setActivePageId(null);
   };
+
   const handleDeleteNotebook = async (notebookId: string) => {
     if (!user || !confirm("Soll dieses Notizbuch und ALLE darin enthaltenen Kapitel und Seiten wirklich gelöscht werden?")) return;
-    const batch = writeBatch(db);
-    const sectionsQuery = query(collection(db, 'users', user.uid, 'sections'), where('notebookId', '==', notebookId));
-    const sectionsSnapshot = await getDocs(sectionsQuery);
-    for (const sectionDoc of sectionsSnapshot.docs) {
-        const pagesQuery = query(collection(db, 'users', user.uid, 'notes'), where('sectionId', '==', sectionDoc.id));
-        const pagesSnapshot = await getDocs(pagesQuery);
-        pagesSnapshot.forEach(pageDoc => batch.delete(pageDoc.ref));
-        batch.delete(sectionDoc.ref);
+    
+    // Get all sections in notebook
+    const { data: sections } = await supabase
+      .from('sections')
+      .select('id')
+      .eq('notebook_id', notebookId)
+      .eq('user_id', user.uid);
+
+    // Delete all pages in those sections
+    if (sections && sections.length > 0) {
+      const sectionIds = sections.map((s: any) => s.id);
+      const { error: pageError } = await supabase
+        .from('notes')
+        .delete()
+        .in('section_id', sectionIds);
+
+      if (pageError) console.error('Error deleting pages:', pageError);
     }
-    batch.delete(doc(db, 'users', user.uid, 'notebooks', notebookId));
-    await batch.commit();
+
+    // Delete all sections
+    const { error: sectionsError } = await supabase
+      .from('sections')
+      .delete()
+      .eq('notebook_id', notebookId)
+      .eq('user_id', user.uid);
+
+    // Delete notebook
+    const { error: notebookError } = await supabase
+      .from('notebooks')
+      .delete()
+      .eq('id', notebookId)
+      .eq('user_id', user.uid);
+
+    if (sectionsError) console.error('Error deleting sections:', sectionsError);
+    if (notebookError) console.error('Error deleting notebook:', notebookError);
+    
     if (activeNotebookId === notebookId) setActiveNotebookId(null);
   };
   const handleContextMenu = (event: React.MouseEvent, type: 'notebook' | 'section' | 'page', id: string, name: string) => {
@@ -143,42 +255,78 @@ export default function NotizenPage() {
     setContextMenu({ x: event.clientX, y: event.clientY, type, id, name });
   };
 
-  // Creation handlers (unchanged)
+  // Creation handlers
   const handleAddNotebook = async () => {
     const name = prompt("Name des neuen Notizbuchs:");
     if (name && user) {
-      await addDoc(collection(db, 'users', user.uid, 'notebooks'), { name, userId: user.uid, createdAt: serverTimestamp() });
+      const { error } = await supabase
+        .from('notebooks')
+        .insert([{ name, user_id: user.uid, created_at: new Date().toISOString() }]);
+
+      if (error) console.error('Error creating notebook:', error);
     }
   };
+
   const handleAddSection = async () => {
     if (!activeNotebookId) return alert("Wählen Sie ein Notizbuch aus.");
     const name = prompt("Name des neuen Kapitels:");
     if (name && user) {
-      const newSectionRef = await addDoc(collection(db, 'users', user.uid, 'sections'), { name, notebookId: activeNotebookId, userId: user.uid, createdAt: serverTimestamp() });
-      setActiveSectionId(newSectionRef.id);
+      const { data, error } = await supabase
+        .from('sections')
+        .insert([{ name, notebook_id: activeNotebookId, user_id: user.uid, created_at: new Date().toISOString() }])
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error creating section:', error);
+      } else if (data) {
+        setActiveSectionId(data.id);
+      }
     }
   };
+
   const handleAddPage = async (sectionId: string) => {
     if (!user || !sectionId) return;
-    const newPageRef = await addDoc(collection(db, 'users', user.uid, 'notes'), {
-      titel: 'Unbenannte Seite', inhalt: '# Neue Seite\n', sectionId: sectionId, userId: user.uid, isFavorit: false, datum: serverTimestamp(),
-    });
-    setActivePageId(newPageRef.id);
+    const { data, error } = await supabase
+      .from('notes')
+      .insert([{
+        titel: 'Unbenannte Seite',
+        inhalt: '# Neue Seite\n',
+        section_id: sectionId,
+        user_id: user.uid,
+        isFavorit: false,
+        datum: new Date().toISOString(),
+      }])
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Error creating page:', error);
+    } else if (data) {
+      setActivePageId(data.id);
+    }
   };
 
-  // Selection handlers (unchanged)
+  // Selection handlers
   const handleSelectNotebook = (id: string) => {
     setActiveNotebookId(id);
     setActiveSectionId(null);
     setActivePageId(null);
   };
+
   const handleSelectSection = (id: string) => {
-      setActiveSectionId(id);
-      setActivePageId(null);
+    setActiveSectionId(id);
+    setActivePageId(null);
   };
   const handleUpdatePage = useCallback(async (field: 'titel' | 'inhalt', value: string) => {
     if (!user || !activePageId) return;
-    await updateDoc(doc(db, 'users', user.uid, 'notes', activePageId), { [field]: value });
+    const { error } = await supabase
+      .from('notes')
+      .update({ [field]: value })
+      .eq('id', activePageId)
+      .eq('user_id', user.uid);
+
+    if (error) console.error('Error updating page:', error);
   }, [user, activePageId]);
 
   // Derived state for rendering

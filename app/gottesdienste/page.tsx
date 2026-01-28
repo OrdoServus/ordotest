@@ -1,11 +1,10 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { db } from '../login/firebaseClient';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDoc, serverTimestamp, query, orderBy, where } from "firebase/firestore";
+import { supabase } from '../login/supabaseClient';
 
 import Sidebar from '../components/Sidebar';
-import GottesdienstEditor from '../components/GottesdienstEditor'; // Geändert
+import GottesdienstEditor from '../components/GottesdienstEditor';
 
 // TypeScript-Interfaces
 interface Dokument {
@@ -33,16 +32,34 @@ export default function GottesdienstePage() {
 
   useEffect(() => {
     if (user) {
-      const userDocsCollection = collection(db, 'users', user.uid, 'dokumente');
-      const q = query(userDocsCollection, where("typ", "==", "gottesdienst"), orderBy('datum', 'desc'));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as Omit<Dokument, 'id'>) }));
-        setDokumente(docs);
-        if (!aktuelleId && docs.length > 0 && !searchParams.get('doc')) {
-          // setAktuelleId(docs[0].id);
+      const fetchDokumente = async () => {
+        const { data, error } = await supabase
+          .from('dokumente')
+          .select('*')
+          .eq('user_id', user.uid)
+          .eq('typ', 'gottesdienst')
+          .order('datum', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching documents:', error);
+        } else {
+          setDokumente(data || []);
         }
-      });
-      return () => unsubscribe();
+      };
+
+      fetchDokumente();
+
+      // Subscribe to changes
+      const subscription = supabase
+        .channel('dokumente')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'dokumente', filter: `user_id=eq.${user.uid}` }, () => {
+          fetchDokumente();
+        })
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
     } else {
       setDokumente([]);
     }
@@ -52,49 +69,99 @@ export default function GottesdienstePage() {
 
   const handleUpdate = useCallback(async (feld: 'titel' | 'inhalt', wert: string) => {
     if (!user || !aktuelleId) return;
-    const docRef = doc(db, 'users', user.uid, 'dokumente', aktuelleId);
-    await updateDoc(docRef, { [feld]: wert });
+    const { error } = await supabase
+      .from('dokumente')
+      .update({ [feld]: wert })
+      .eq('id', aktuelleId)
+      .eq('user_id', user.uid);
+    
+    if (error) {
+      console.error('Error updating document:', error);
+    }
   }, [user, aktuelleId]);
 
   const erstelleNeuenGottesdienst = async () => {
     if (!user) return;
-    const userDocsCollection = collection(db, 'users', user.uid, 'dokumente');
     const neu = {
+      user_id: user.uid,
       titel: 'Neuer Gottesdienst',
       inhalt: '# Neuer Gottesdienst\n\nFügen Sie hier Ihren Inhalt ein.',
-      datum: serverTimestamp(),
+      datum: new Date().toISOString(),
       isFavorit: false,
       typ: 'gottesdienst' as const,
     };
-    const newDocRef = await addDoc(userDocsCollection, neu);
-    setAktuelleId(newDocRef.id);
+
+    const { data, error } = await supabase
+      .from('dokumente')
+      .insert([neu])
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Error creating document:', error);
+    } else if (data) {
+      setAktuelleId(data.id);
+    }
   };
 
   const handleLöschen = async (id: string) => {
     if (!user || !confirm("Möchten Sie diesen Gottesdienst wirklich endgültig löschen?")) return;
-    const docRef = doc(db, 'users', user.uid, 'dokumente', id);
-    await deleteDoc(docRef);
-    if (aktuelleId === id) setAktuelleId(null);
+    const { error } = await supabase
+      .from('dokumente')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.uid);
+    
+    if (error) {
+      console.error('Error deleting document:', error);
+    } else if (aktuelleId === id) {
+      setAktuelleId(null);
+    }
   };
 
   const handleKopieren = async (id: string) => {
     if (!user) return;
-    const docRef = doc(db, 'users', user.uid, 'dokumente', id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const original = docSnap.data();
-      const kopie = { ...original, titel: `${original.titel} (Kopie)`, datum: serverTimestamp() };
-      const userDocsCollection = collection(db, 'users', user.uid, 'dokumente');
-      await addDoc(userDocsCollection, kopie);
+    const { data: originalData, error: fetchError } = await supabase
+      .from('dokumente')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.uid)
+      .single();
+
+    if (fetchError || !originalData) {
+      console.error('Error fetching document:', fetchError);
+      return;
+    }
+
+    const kopie = { 
+      ...originalData, 
+      titel: `${originalData.titel} (Kopie)`, 
+      datum: new Date().toISOString(),
+      id: undefined // Remove ID so Supabase generates a new one
+    };
+
+    const { error: insertError } = await supabase
+      .from('dokumente')
+      .insert([kopie]);
+
+    if (insertError) {
+      console.error('Error copying document:', insertError);
     }
   };
 
   const handleFavorit = async (id: string) => {
     if (!user) return;
-    const docRef = doc(db, 'users', user.uid, 'dokumente', id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      await updateDoc(docRef, { isFavorit: !docSnap.data().isFavorit });
+    const dokument = dokumente.find(d => d.id === id);
+    if (!dokument) return;
+
+    const { error } = await supabase
+      .from('dokumente')
+      .update({ isFavorit: !dokument.isFavorit })
+      .eq('id', id)
+      .eq('user_id', user.uid);
+
+    if (error) {
+      console.error('Error updating favorite status:', error);
     }
   };
 

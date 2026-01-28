@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { db } from '../login/firebaseClient';
-import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
+import { supabase } from '../login/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Dashboard from '../components/Dashboard';
 
@@ -21,30 +20,59 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) {
-      const userDocsCollection = collection(db, 'users', user.uid, 'dokumente');
-      const q = query(userDocsCollection, orderBy('datum', 'desc'));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as Omit<Dokument, 'id'>) }));
-        setDokumente(docs);
-      });
-      return () => unsubscribe();
+      const fetchDokumente = async () => {
+        const { data, error } = await supabase
+          .from('dokumente')
+          .select('*')
+          .eq('user_id', user.uid)
+          .order('datum', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching documents:', error);
+        } else {
+          setDokumente(data || []);
+        }
+      };
+
+      fetchDokumente();
+
+      // Subscribe to changes
+      const subscription = supabase
+        .channel('dokumente')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'dokumente', filter: `user_id=eq.${user.uid}` }, () => {
+          fetchDokumente();
+        })
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
     }
   }, [user]);
 
   const createNewDocument = async (typ: 'gottesdienst' | 'notiz') => {
     if (!user) return;
-    const userDocsCollection = collection(db, 'users', user.uid, 'dokumente');
     const isGottesdienst = typ === 'gottesdienst';
     const neu = {
+      user_id: user.uid,
       titel: isGottesdienst ? 'Neuer Gottesdienst' : 'Neue Notiz',
       inhalt: isGottesdienst ? '# Neuer Gottesdienst\n\nFügen Sie hier Ihren Inhalt ein.' : '# Neue Notiz\n\n',
-      datum: serverTimestamp(),
+      datum: new Date().toISOString(),
       isFavorit: false,
       typ: typ,
     };
-    const newDocRef = await addDoc(userDocsCollection, neu);
-    // Redirect to the appropriate page to edit the new document
-    router.push(isGottesdienst ? `/gottesdienste?doc=${newDocRef.id}` : `/notizen?doc=${newDocRef.id}`);
+
+    const { data, error } = await supabase
+      .from('dokumente')
+      .insert([neu])
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Error creating document:', error);
+    } else if (data) {
+      router.push(isGottesdienst ? `/gottesdienste?doc=${data.id}` : `/notizen?doc=${data.id}`);
+    }
   };
 
   return (
