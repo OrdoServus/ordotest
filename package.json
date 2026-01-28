@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "firebase": "^12.8.0",
     "gray-matter": "^4.0.3",
     "lucide-react": "^0.563.0",
     "next": "16.1.1",
@@ -17,7 +16,8 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "remark": "^15.0.1",
-    "remark-html": "^16.0.1"
+    "remark-html": "^16.0.1",
+    "supabase": "^2.72.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
