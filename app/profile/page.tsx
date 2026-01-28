@@ -12,18 +12,28 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
   // Fetch existing profile data
   useEffect(() => {
     if (user) {
       const fetchProfile = async () => {
         const { data, error } = await supabase
-          .from('users')
+          .from('profiles') // Korrigiert: Lese von 'profiles'
           .select('name, funktion')
           .eq('id', user.id)
           .single();
 
         if (error) {
-          console.error('Error fetching profile:', error);
+          // Kein Fehler loggen, wenn das Profil einfach noch nicht existiert
+          if (error.code !== 'PGRST116') {
+            console.error('Error fetching profile:', error);
+          }
         } else if (data) {
           setName(data.name || '');
           setFunktion(data.funktion || '');
@@ -43,7 +53,7 @@ export default function ProfilePage() {
 
     try {
       const { error } = await supabase
-        .from('users')
+        .from('profiles') // Korrigiert: Schreibe in 'profiles'
         .upsert({ id: user.id, name, funktion }, { onConflict: 'id' });
 
       if (error) {
@@ -61,7 +71,7 @@ export default function ProfilePage() {
     setIsSaving(false);
   };
   
-  if(loading){
+  if(loading || !user){
       return <div>Lade Profil...</div>
   }
 
