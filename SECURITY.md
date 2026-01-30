@@ -12,7 +12,7 @@ Wenn du eine mögliche Sicherheitslücke entdeckst:
 
 1. **Bitte kein öffentliches Issue erstellen.**
 2. Kontaktiere uns vertraulich unter:  
-   **[E-Mail-Adresse der verantwortlichen Stelle]**
+   ordo.servus@gmx.ch
 3. Beschreibe das Problem so genau wie möglich:
    - Art der Schwachstelle  
    - Schritte zur Reproduktion  

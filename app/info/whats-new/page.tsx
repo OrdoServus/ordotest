@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import Footer from '../Footer';
 
 // Define the structure of a changelog entry
 interface ChangelogEntry {
@@ -35,30 +36,33 @@ const WhatsNewPage: React.FC = () => {
   }, []);
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.mainTitle}>Was ist neu in OrdoServus?</h1>
-      
-      {loading && <p>Lade Neuigkeiten...</p>}
-      {error && <p style={styles.errorText}>{error}</p>}
+    <>
+      <div style={styles.container}>
+        <h1 style={styles.mainTitle}>Was ist neu in OrdoServus?</h1>
+        
+        {loading && <p>Lade Neuigkeiten...</p>}
+        {error && <p style={styles.errorText}>{error}</p>}
 
-      {!loading && !error && (
-        <div style={styles.timeline}>
-          {updates.map((entry) => (
-            <article key={entry.version} style={styles.entry}>
-              <header style={styles.entryHeader}>
-                <span style={styles.date}>{entry.date}</span>
-                <h2 style={styles.versionTitle}>v{entry.version}: {entry.title}</h2>
-              </header>
-              <ul style={styles.changeList}>
-                {entry.changes.map((change, index) => (
-                  <li key={index} style={styles.changeItem}>{change}</li>
-                ))}
-              </ul>
-            </article>
-          ))}
-        </div>
-      )}
-    </div>
+        {!loading && !error && (
+          <div style={styles.timeline}>
+            {updates.map((entry) => (
+              <article key={entry.version} style={styles.entry}>
+                <header style={styles.entryHeader}>
+                  <span style={styles.date}>{entry.date}</span>
+                  <h2 style={styles.versionTitle}>v{entry.version}: {entry.title}</h2>
+                </header>
+                <ul style={styles.changeList}>
+                  {entry.changes.map((change, index) => (
+                    <li key={index} style={styles.changeItem}>{change}</li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+      <Footer />
+    </>
   );
 };
 

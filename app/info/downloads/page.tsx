@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import Footer from '../Footer';
 
 interface DownloadOptionProps {
   title: string;
@@ -64,16 +65,8 @@ export default function DownloadsPage() {
             </div>
           </div>
         </div>
-
-        <footer style={styles.footer}>
-          <p>
-            OrdoServus ist ein Open-Source-Projekt. Helfen Sie mit auf{' '}
-            <a href="https://github.com/ordoservus/ordoservus" target="_blank" rel="noopener noreferrer" style={{ color: '#ef5c22' }}>
-              GitHub
-            </a>.
-          </p>
-        </footer>
       </main>
+      <Footer />
     </div>
   );
 }
@@ -178,11 +171,4 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 'bold',
     fontSize: '0.9rem',
   },
-  footer: {
-    textAlign: 'center',
-    marginTop: '60px',
-    paddingTop: '30px',
-    borderTop: '1px solid #eee',
-    color: '#7f8c8d',
-  }
 };

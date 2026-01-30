@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import Footer from '../Footer';
 
 export default function KontaktPage() {
   return (
@@ -51,6 +52,7 @@ export default function KontaktPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

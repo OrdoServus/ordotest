@@ -1,6 +1,7 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
+'use client';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Footer from '../Footer';
 
 interface HelpArticle {
   id: string;
@@ -21,21 +22,33 @@ interface HelpData {
 }
 
 export default function HilfePage() {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [categories, setCategories] = useState<HelpCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        console.log("Loading help data from JSON...");
+        console.log('Loading help data from JSON...');
         const response = await fetch('/help-data.json');
         if (!response.ok) {
           throw new Error('Failed to fetch help data');
         }
         const data: HelpData = await response.json();
-        console.log("Loaded categories:", data.categories);
+        console.log('Loaded categories:', data.categories);
         setCategories(data.categories);
         setError(null);
       } catch (err) {
@@ -80,7 +93,7 @@ export default function HilfePage() {
           ← Zurück zur Info-Seite
         </Link>
 
-        <h1 style={styles.title}>Hilfe & Support</h1>
+        <h1 style={{...styles.title, ...(isMobile ? { fontSize: '1.8rem' } : {})}}>Hilfe & Support</h1>
 
         <input
           type="text"
@@ -91,7 +104,7 @@ export default function HilfePage() {
         />
       </header>
 
-      <section style={styles.grid}>
+      <section style={{...styles.grid, ...(isMobile ? { gridTemplateColumns: '1fr' } : {})}}>
         {filteredCategories.map((cat) => (
           <Link
             key={cat.id}
@@ -107,95 +120,73 @@ export default function HilfePage() {
         ))}
       </section>
 
-      <footer style={styles.footer}>
-        <p>Keine passende Antwort gefunden?</p>
-        <Link href="/info/kontakt" style={styles.contactButton}>
-          Kontakt aufnehmen
-        </Link>
-      </footer>
+      <Footer />
     </div>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
   wrapper: {
-    maxWidth: "900px",
-    margin: "0 auto",
-    padding: "40px 20px",
-    fontFamily: "sans-serif",
+    maxWidth: '1100px',
+    margin: '0 auto',
+    padding: '40px 20px',
+    fontFamily: 'sans-serif',
   },
 
   header: {
-    textAlign: "center",
-    marginBottom: "50px",
+    textAlign: 'center',
+    marginBottom: '50px',
   },
 
   backLink: {
-    color: "#888",
-    textDecoration: "none",
-    fontSize: "0.9rem",
+    color: '#888',
+    textDecoration: 'none',
+    fontSize: '0.9rem',
   },
 
   title: {
-    fontSize: "2.4rem",
-    margin: "20px 0",
+    fontSize: '2.4rem',
+    margin: '20px 0',
   },
 
   search: {
-    width: "100%",
-    maxWidth: "500px",
-    padding: "14px 20px",
-    borderRadius: "8px",
-    border: "1px solid #ddd",
-    fontSize: "1rem",
+    width: '100%',
+    maxWidth: '500px',
+    padding: '14px 20px',
+    borderRadius: '8px',
+    border: '1px solid #ddd',
+    fontSize: '1rem',
   },
 
   grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-    gap: "25px",
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gap: '25px',
   },
 
   card: {
-    display: "block",
-    background: "#fff",
-    padding: "25px",
-    borderRadius: "10px",
-    border: "1px solid #eee",
-    textDecoration: "none",
-    color: "#333",
-    transition: "0.2s",
+    display: 'block',
+    background: '#fff',
+    padding: '25px',
+    borderRadius: '10px',
+    border: '1px solid #eee',
+    textDecoration: 'none',
+    color: '#333',
+    transition: '0.2s',
   },
 
   icon: {
-    fontSize: "2rem",
-    marginBottom: "10px",
+    fontSize: '2rem',
+    marginBottom: '10px',
   },
 
   cardTitle: {
-    fontSize: "1.2rem",
-    marginBottom: "5px",
+    fontSize: '1.2rem',
+    marginBottom: '5px',
   },
 
   cardDesc: {
-    color: "#777",
-    fontSize: "0.9rem",
-  },
-
-  footer: {
-    textAlign: "center",
-    marginTop: "60px",
-    paddingTop: "30px",
-    borderTop: "1px solid #eee",
-  },
-
-  contactButton: {
-    display: "inline-block",
-    marginTop: "10px",
-    padding: "10px 20px",
-    background: "#2c3e50",
-    color: "#fff",
-    borderRadius: "6px",
-    textDecoration: "none",
+    color: '#777',
+    fontSize: '0.9rem',
   },
 };

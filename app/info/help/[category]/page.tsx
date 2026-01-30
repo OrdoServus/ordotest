@@ -1,8 +1,9 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import Footer from "../../Footer";
 
 interface HelpArticle {
   id: string;
@@ -107,20 +108,14 @@ export default function CategoryPage() {
           ))
         )}
       </section>
-
-      <footer style={styles.footer}>
-        <p>Keine passende Antwort gefunden?</p>
-        <Link href="/info/kontakt" style={styles.contactButton}>
-          Kontakt aufnehmen
-        </Link>
-      </footer>
+      <Footer />
     </div>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
   wrapper: {
-    maxWidth: "900px",
+    maxWidth: "1100px",
     margin: "0 auto",
     padding: "40px 20px",
     fontFamily: "sans-serif",
@@ -177,22 +172,5 @@ const styles: Record<string, React.CSSProperties> = {
   articleContent: {
     lineHeight: "1.6",
     color: "#333",
-  },
-
-  footer: {
-    textAlign: "center",
-    marginTop: "60px",
-    paddingTop: "30px",
-    borderTop: "1px solid #eee",
-  },
-
-  contactButton: {
-    display: "inline-block",
-    marginTop: "10px",
-    padding: "10px 20px",
-    background: "#2c3e50",
-    color: "#fff",
-    borderRadius: "6px",
-    textDecoration: "none",
   },
 };

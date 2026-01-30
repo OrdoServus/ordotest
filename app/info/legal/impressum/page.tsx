@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import Footer from '../../Footer';
 
 export default function ImpressumPage() {
   return (
@@ -61,6 +62,7 @@ export default function ImpressumPage() {
                 </div>
             </section>
         </main>
+        <Footer />
     </div>
   );
 }

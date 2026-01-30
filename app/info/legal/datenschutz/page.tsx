@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import Footer from '../../Footer';
 
 export default function DatenschutzPage() {
   const currentYear = new Date().getFullYear();
@@ -94,6 +95,7 @@ export default function DatenschutzPage() {
                 </div>
             </section>
         </main>
+        <Footer />
     </div>
   );
 }
