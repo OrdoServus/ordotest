@@ -1,192 +1,22 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import Footer from '../Footer';
 
-interface HelpArticle {
-  id: string;
-  title: string;
-  content: string;
-}
+import { redirect } from 'next/navigation';
+import { useEffect } from 'react';
 
-interface HelpCategory {
-  id: string;
-  title: string;
-  icon: string;
-  description: string;
-  articles: HelpArticle[];
-}
-
-interface HelpData {
-  categories: HelpCategory[];
-}
-
-export default function HilfePage() {
-  const [search, setSearch] = useState('');
-  const [categories, setCategories] = useState<HelpCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-
+export default function RedirectPage() {
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    handleResize();
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    redirect('https://ordoservus.miraheze.org/wiki/');
   }, []);
-
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        console.log('Loading help data from JSON...');
-        const response = await fetch('/help-data.json');
-        if (!response.ok) {
-          throw new Error('Failed to fetch help data');
-        }
-        const data: HelpData = await response.json();
-        console.log('Loaded categories:', data.categories);
-        setCategories(data.categories);
-        setError(null);
-      } catch (err) {
-        console.error('Error loading help data:', err);
-        setError('Fehler beim Laden der Hilfe-Inhalte');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCategories();
-  }, []);
-
-  const filteredCategories = categories.filter((cat) =>
-    cat.title.toLowerCase().includes(search.toLowerCase()) ||
-    cat.description.toLowerCase().includes(search.toLowerCase())
-  );
-
-  if (loading) {
-    return (
-      <div style={styles.wrapper}>
-        <p>Lade Hilfe-Inhalte...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={styles.wrapper}>
-        <p style={{ color: 'red' }}>{error}</p>
-        <Link href="/info" style={styles.backLink}>
-          ← Zurück zur Info-Seite
-        </Link>
-      </div>
-    );
-  }
 
   return (
-    <div style={styles.wrapper}>
-      <header style={styles.header}>
-        <Link href="/info" style={styles.backLink}>
-          ← Zurück zur Info-Seite
-        </Link>
-
-        <h1 style={{...styles.title, ...(isMobile ? { fontSize: '1.8rem' } : {})}}>Hilfe & Support</h1>
-
-        <input
-          type="text"
-          placeholder="Themen durchsuchen..."
-          style={styles.search}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </header>
-
-      <section style={{...styles.grid, ...(isMobile ? { gridTemplateColumns: '1fr' } : {})}}>
-        {filteredCategories.map((cat) => (
-          <Link
-            key={cat.id}
-            href={`/info/help/${cat.id}`}
-            style={styles.card}
-          >
-            <div style={styles.icon}>{cat.icon}</div>
-            <h2 style={styles.cardTitle}>{cat.title}</h2>
-            <p style={styles.cardDesc}>
-              {cat.articles.length} Artikel
-            </p>
-          </Link>
-        ))}
-      </section>
-
-      <Footer />
+    <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'sans-serif' }}>
+      <p>Sie werden zum OrdoServus Wiki weitergeleitet...</p>
+      <p>
+        Wenn Sie nicht automatisch weitergeleitet werden, klicken Sie bitte hier:
+        <a href="https://ordoservus.miraheze.org/wiki/" style={{ color: '#3498db' }}>
+          OrdoServus Wiki
+        </a>
+      </p>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  wrapper: {
-    maxWidth: '1100px',
-    margin: '0 auto',
-    padding: '40px 20px',
-    fontFamily: 'sans-serif',
-  },
-
-  header: {
-    textAlign: 'center',
-    marginBottom: '50px',
-  },
-
-  backLink: {
-    color: '#888',
-    textDecoration: 'none',
-    fontSize: '0.9rem',
-  },
-
-  title: {
-    fontSize: '2.4rem',
-    margin: '20px 0',
-  },
-
-  search: {
-    width: '100%',
-    maxWidth: '500px',
-    padding: '14px 20px',
-    borderRadius: '8px',
-    border: '1px solid #ddd',
-    fontSize: '1rem',
-  },
-
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-    gap: '25px',
-  },
-
-  card: {
-    display: 'block',
-    background: '#fff',
-    padding: '25px',
-    borderRadius: '10px',
-    border: '1px solid #eee',
-    textDecoration: 'none',
-    color: '#333',
-    transition: '0.2s',
-  },
-
-  icon: {
-    fontSize: '2rem',
-    marginBottom: '10px',
-  },
-
-  cardTitle: {
-    fontSize: '1.2rem',
-    marginBottom: '5px',
-  },
-
-  cardDesc: {
-    color: '#777',
-    fontSize: '0.9rem',
-  },
-};
