@@ -1,42 +1,45 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
-import { supabase } from '../login/supabaseClient';
+import { db } from '../firebase/config';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [name, setName] = useState('');
   const [funktion, setFunktion] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Redirect if not logged in
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       router.push('/login');
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, router]);
 
   // Fetch existing profile data
   useEffect(() => {
     if (user) {
       const fetchProfile = async () => {
-        const { data, error } = await supabase
-          .from('profiles') // Korrigiert: Lese von 'profiles'
-          .select('name, funktion')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          // Kein Fehler loggen, wenn das Profil einfach noch nicht existiert
-          if (error.code !== 'PGRST116') {
-            console.error('Error fetching profile:', error);
+        setIsLoading(true);
+        try {
+          const profileRef = doc(db, 'users', user.uid, 'profile', 'data');
+          const profileSnap = await getDoc(profileRef);
+          
+          if (profileSnap.exists()) {
+            const data = profileSnap.data();
+            setName(data.name || '');
+            setFunktion(data.funktion || '');
           }
-        } else if (data) {
-          setName(data.name || '');
-          setFunktion(data.funktion || '');
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+          setMessage({ type: 'error', text: 'Fehler beim Laden des Profils.' });
+        } finally {
+          setIsLoading(false);
         }
       };
 
@@ -49,30 +52,58 @@ export default function ProfilePage() {
     if (!user) return;
 
     setIsSaving(true);
-    setMessage('');
+    setMessage(null);
 
     try {
-      const { error } = await supabase
-        .from('profiles') // Korrigiert: Schreibe in 'profiles'
-        .upsert({ id: user.id, name, funktion }, { onConflict: 'id' });
+      const profileRef = doc(db, 'users', user.uid, 'profile', 'data');
+      await setDoc(profileRef, {
+        name: name.trim(),
+        funktion: funktion.trim(),
+        email: user.email,
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      }, { merge: true });
 
-      if (error) {
-        throw error;
-      }
-
-      setMessage('Profil erfolgreich gespeichert!');
+      setMessage({ type: 'success', text: 'Profil erfolgreich gespeichert!' });
+      
       // Redirect to home after a short delay
       setTimeout(() => router.push('/'), 1500);
     } catch (error) {
-      console.error("Error saving profile: ", error);
-      setMessage('Fehler beim Speichern. Bitte versuchen Sie es erneut.');
+      console.error('Error saving profile:', error);
+      setMessage({ type: 'error', text: 'Fehler beim Speichern. Bitte versuchen Sie es erneut.' });
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsSaving(false);
   };
-  
-  if(loading || !user){
-      return <div>Lade Profil...</div>
+
+  const handleSkip = () => {
+    router.push('/');
+  };
+
+  if (authLoading || !user) {
+    return (
+      <div style={containerStyle}>
+        <div style={cardStyle}>
+          <div style={loadingContainerStyle}>
+            <div style={spinnerStyle}></div>
+            <p>Lade...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div style={containerStyle}>
+        <div style={cardStyle}>
+          <div style={loadingContainerStyle}>
+            <div style={spinnerStyle}></div>
+            <p>Profil wird geladen...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -83,7 +114,7 @@ export default function ProfilePage() {
 
         <form onSubmit={handleSave}>
           <div style={inputGroupStyle}>
-            <label style={labelStyle}>Name</label>
+            <label style={labelStyle}>Name *</label>
             <input
               type="text"
               placeholder="z.B. Max Mustermann"
@@ -91,8 +122,10 @@ export default function ProfilePage() {
               onChange={(e) => setName(e.target.value)}
               style={inputStyle}
               required
+              disabled={isSaving}
             />
           </div>
+          
           <div style={inputGroupStyle}>
             <label style={labelStyle}>Funktion</label>
             <input
@@ -101,21 +134,51 @@ export default function ProfilePage() {
               value={funktion}
               onChange={(e) => setFunktion(e.target.value)}
               style={inputStyle}
+              disabled={isSaving}
             />
           </div>
 
-          <button type="submit" disabled={isSaving} style={btnStyle}>
-            {isSaving ? 'Wird gespeichert...' : 'Speichern & Weiter'}
-          </button>
+          <div style={buttonGroupStyle}>
+            <button 
+              type="button" 
+              onClick={handleSkip} 
+              disabled={isSaving}
+              style={skipButtonStyle}
+            >
+              Überspringen
+            </button>
+            
+            <button 
+              type="submit" 
+              disabled={isSaving || !name.trim()}
+              style={{
+                ...saveButtonStyle,
+                opacity: isSaving || !name.trim() ? 0.6 : 1,
+                cursor: isSaving || !name.trim() ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {isSaving ? 'Wird gespeichert...' : 'Speichern & Weiter'}
+            </button>
+          </div>
         </form>
 
-        {message && <p style={messageStyle}>{message}</p>}
+        {message && (
+          <div style={{
+            ...messageStyle,
+            backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
+            color: message.type === 'success' ? '#155724' : '#721c24',
+            border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`,
+          }}>
+            {message.type === 'success' ? '✅ ' : '⚠️ '}
+            {message.text}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Basic Styles (similar to LoginPage for consistency)
+// Styles
 const containerStyle: React.CSSProperties = {
   minHeight: '100vh',
   backgroundColor: '#f4f7f6',
@@ -132,6 +195,23 @@ const cardStyle: React.CSSProperties = {
   padding: '40px',
   width: '100%',
   maxWidth: '500px'
+};
+
+const loadingContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '15px',
+  padding: '40px',
+};
+
+const spinnerStyle: React.CSSProperties = {
+  width: '40px',
+  height: '40px',
+  border: '4px solid #f3f3f3',
+  borderTop: '4px solid #ef5c22',
+  borderRadius: '50%',
+  animation: 'spin 1s linear infinite',
 };
 
 const titleStyle: React.CSSProperties = {
@@ -165,23 +245,44 @@ const inputStyle: React.CSSProperties = {
   borderRadius: '8px',
   border: '1px solid #ccc',
   fontSize: '1rem',
-  boxSizing: 'border-box'
+  boxSizing: 'border-box',
+  transition: 'border-color 0.2s',
 };
 
-const btnStyle: React.CSSProperties = {
-  width: '100%',
+const buttonGroupStyle: React.CSSProperties = {
+  display: 'flex',
+  gap: '10px',
+  marginTop: '20px',
+};
+
+const skipButtonStyle: React.CSSProperties = {
+  flex: 1,
+  padding: '15px',
+  backgroundColor: '#95a5a6',
+  color: 'white',
+  border: 'none',
+  borderRadius: '8px',
+  fontSize: '1rem',
+  cursor: 'pointer',
+  transition: 'background 0.2s',
+};
+
+const saveButtonStyle: React.CSSProperties = {
+  flex: 2,
   padding: '15px',
   backgroundColor: '#2c3e50',
   color: 'white',
   border: 'none',
   borderRadius: '8px',
   fontSize: '1.1rem',
-  cursor: 'pointer',
-  marginTop: '10px'
+  fontWeight: 500,
+  transition: 'background 0.2s',
 };
 
 const messageStyle: React.CSSProperties = {
-  textAlign: 'center',
   marginTop: '20px',
-  color: '#27ae60'
+  padding: '12px',
+  borderRadius: '8px',
+  textAlign: 'center',
+  fontSize: '0.95rem',
 };

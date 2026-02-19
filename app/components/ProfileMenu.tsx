@@ -92,7 +92,7 @@ const ProfileMenu: React.FC = () => {
               <Info size={16} style={{ marginRight: '10px' }} />
               Über OrdoServus
             </Link>
-            <Link href="/info/help" style={styles.dropdownItemLink} onClick={closeMenu}>
+            <Link href="/wiki" style={styles.dropdownItemLink} onClick={closeMenu}>
               <HelpCircle size={16} style={{ marginRight: '10px' }} />
               Hilfe
             </Link>

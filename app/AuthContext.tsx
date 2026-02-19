@@ -1,18 +1,20 @@
 'use client';
-import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from './login/supabaseClient';
-import type { User } from '@supabase/supabase-js';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { auth } from './firebase/config';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  logout: () => Promise<void>; // ✅ Hinzufügen
+  logout: () => Promise<void>;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({ 
   user: null, 
   loading: true,
-  logout: async () => {} // ✅ Hinzufügen
+  logout: async () => {},
+  isAuthenticated: false,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -20,37 +22,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setLoading(false);
-    };
-
-    getSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((event: any, session: any) => {
-      setUser(session?.user ?? null);
+    // Firebase Auth State Listener
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: User | null) => {
+      setUser(firebaseUser);
       setLoading(false);
     });
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+    // Cleanup subscription
+    return () => unsubscribe();
   }, []);
 
-  // ✅ Logout-Funktion hinzufügen
-  const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+  // Logout Funktion mit Fehlerbehandlung
+  const logout = useCallback(async () => {
+    try {
+      await signOut(auth);
+      // Erfolgreich ausgeloggt - State wird durch onAuthStateChanged aktualisiert
+    } catch (error) {
       console.error('Logout error:', error);
+      throw error; // Fehler weitergeben für UI-Feedback
     }
+  }, []);
+
+  // Computed property für einfacheren Zugriff
+  const isAuthenticated = !!user;
+
+  const value = {
+    user,
+    loading,
+    logout,
+    isAuthenticated,
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}> {/* ✅ logout hinzufügen */}
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+// Custom Hook mit Fehlerbehandlung
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth muss innerhalb eines AuthProvider verwendet werden');
+  }
+  return context;
+};

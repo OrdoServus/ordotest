@@ -1,8 +1,10 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../login/supabaseClient';
+import { db } from '../firebase/config';
+import { collection, query, orderBy, getDocs, addDoc, onSnapshot, QueryDocumentSnapshot, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../AuthContext';
+
 import Dashboard from '../components/Dashboard';
 
 interface Dokument {
@@ -28,40 +30,46 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user) {
       const fetchDokumente = async () => {
-        const { data, error } = await supabase
-          .from('dokumente')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('datum', { ascending: false });
-        
-        if (error) {
+        try {
+          const q = query(
+            collection(db, 'users', user.uid, 'dokumente'),
+            orderBy('datum', 'desc')
+          );
+          const querySnapshot = await getDocs(q);
+          const docs: Dokument[] = [];
+          querySnapshot.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
+            docs.push({ id: doc.id, ...doc.data() } as Dokument);
+          });
+          setDokumente(docs);
+        } catch (error) {
           console.error('Error fetching documents:', error);
-        } else {
-          setDokumente(data || []);
         }
       };
 
       fetchDokumente();
 
       // Subscribe to changes
-      const subscription = supabase
-        .channel('dokumente')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'dokumente', filter: `user_id=eq.${user.id}` }, () => {
-          fetchDokumente();
-        })
-        .subscribe();
+      const q = query(
+        collection(db, 'users', user.uid, 'dokumente'),
+        orderBy('datum', 'desc')
+      );
+      const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
+        const docs: Dokument[] = [];
+        snapshot.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
+          docs.push({ id: doc.id, ...doc.data() } as Dokument);
+        });
+        setDokumente(docs);
+      });
 
-      return () => {
-        subscription.unsubscribe();
-      };
+      return () => unsubscribe();
     }
   }, [user]);
+
 
   const createNewDocument = async (typ: 'gottesdienst' | 'notiz') => {
     if (!user) return;
     const isGottesdienst = typ === 'gottesdienst';
     const neu = {
-      user_id: user.id,
       titel: isGottesdienst ? 'Neuer Gottesdienst' : 'Neue Notiz',
       inhalt: isGottesdienst ? '# Neuer Gottesdienst\n\nFügen Sie hier Ihren Inhalt ein.' : '# Neue Notiz\n\n',
       datum: new Date().toISOString(),
@@ -69,18 +77,14 @@ export default function DashboardPage() {
       typ: typ,
     };
 
-    const { data, error } = await supabase
-      .from('dokumente')
-      .insert([neu])
-      .select('id')
-      .single();
-
-    if (error) {
+    try {
+      const docRef = await addDoc(collection(db, 'users', user.uid, 'dokumente'), neu);
+      router.push(isGottesdienst ? `/gottesdienste?doc=${docRef.id}` : `/notizen?doc=${docRef.id}`);
+    } catch (error) {
       console.error('Error creating document:', error);
-    } else if (data) {
-      router.push(isGottesdienst ? `/gottesdienste?doc=${data.id}` : `/notizen?doc=${data.id}`);
     }
   };
+
 
   return (
     <Dashboard 

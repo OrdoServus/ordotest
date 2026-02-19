@@ -2,7 +2,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Book, FileText } from 'lucide-react';
+import { Home, Book, FileText, Calendar } from 'lucide-react';
+
 import ProfileMenu from './ProfileMenu'; // Import the new component
 
 const Navbar: React.FC = () => {
@@ -34,7 +35,12 @@ const Navbar: React.FC = () => {
             <FileText size={18} style={{ marginRight: '8px' }} />
             Notizen
           </Link>
+          <Link href="/kalender" style={getLinkClass('/kalender')}>
+            <Calendar size={18} style={{ marginRight: '8px' }} />
+            Kalender
+          </Link>
         </div>
+
       </div>
       <ProfileMenu /> 
     </nav>

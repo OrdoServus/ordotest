@@ -18,3 +18,6 @@ OrdoServus ist eine Open-Source-Webanwendung, die speziell für Pfarrer, Diakone
 1. Repository klonen: `git clone https://github.com/flohulo/ordoservus.git`
 2. Abhängigkeiten installieren: `npm install`
 3. Lokal starten: `npm run dev`
+
+This project uses vkurko/calendar (MIT License)
+Copyright (c) vkurko
