@@ -1,43 +1,104 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
-// Core braucht die Klammern (Named Export)
-import { EventCalendar } from '@event-calendar/core'; 
+// In v5.x wird createCalendar statt EventCalendar verwendet  
+import { createCalendar, destroyCalendar } from '@event-calendar/core';
 
-// Die Plugins brauchen KEINE Klammern (Default Export)
-import DayGrid from '@event-calendar/day-grid';
-import Interaction from '@event-calendar/interaction';
+// Die Plugins sind Default Exports  
+import { DayGrid } from '@event-calendar/day-grid';
+import { Interaction } from '@event-calendar/interaction';
 
 import '@event-calendar/core/index.css';
 
+// Firebase imports
+import { db } from '../firebase/config';
+import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useAuth } from '../AuthContext';
+
+// Typ-Definition für die Kalender-Instanz  
+interface CalendarInstance {
+    destroy: () => void;
+    [key: string]: any;
+}
+
+// Event interface
+interface Event {
+    id: string;
+    title: string;
+    start: string;
+    end?: string;
+    allDay?: boolean;
+}
+
 export default function KalenderPage() {
     const calendarRef = useRef<HTMLDivElement>(null);
-    const ecRef = useRef<any>(null);
+    const ecRef = useRef<CalendarInstance | null>(null);
+    const [events, setEvents] = useState<Event[]>([]);
+    const { user, isAuthenticated } = useAuth();
 
     useEffect(() => {
-        // Sicherstellen, dass wir im Browser sind und das Element existiert
-        if (typeof window !== 'undefined' && calendarRef.current && !ecRef.current) {
-            ecRef.current = new EventCalendar(calendarRef.current, {
+        if (!isAuthenticated || !user) return;
+
+        // Firestore query for user's events
+        const eventsQuery = query(
+            collection(db, 'events'),
+            where('userId', '==', user.uid)
+        );
+
+        const unsubscribe = onSnapshot(eventsQuery, (snapshot) => {
+            const eventsData = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })) as Event[];
+            setEvents(eventsData);
+        });
+
+        return () => unsubscribe();
+    }, [user, isAuthenticated]);
+
+    useEffect(() => {
+        // Erstelle den Kalender beim ersten Render   
+        if (calendarRef.current && !ecRef.current) {
+            ecRef.current = createCalendar(calendarRef.current, [DayGrid, Interaction], {
                 view: 'dayGridMonth',
-                plugins: [DayGrid, Interaction],
-                events: [], // Hier kommen später deine Firebase-Daten rein
-            });
+                events: events,
+                eventClick: (info: any) => {
+                    console.log('Event clicked:', info.event);
+                },
+                dateClick: (info: any) => {
+                    console.log('Date clicked:', info.dateStr);
+                }
+            }) as CalendarInstance;
         }
 
-        // Cleanup beim Verlassen der Seite
+        // Update events when they change
+        if (ecRef.current) {
+            ecRef.current.setOption('events', events);
+        }
+
+        // Cleanup beim Verlassen der Seite    
         return () => {
             if (ecRef.current) {
-                ecRef.current.destroy?.();
+                destroyCalendar(ecRef.current);
                 ecRef.current = null;
             }
         };
-    }, []);
+    }, [events]);
+
+    if (!isAuthenticated) {
+        return (
+            <div className="p-4">
+                <h1 className="text-2xl font-bold mb-4">Mein Kalender</h1>
+                <p>Bitte melden Sie sich an, um Ihren Kalender zu sehen.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="p-4">
             <h1 className="text-2xl font-bold mb-4">Mein Kalender</h1>
             <div ref={calendarRef} className="bg-white rounded-lg shadow p-2" />
-        </div>
-    );
+         </div> 
+     );
 }

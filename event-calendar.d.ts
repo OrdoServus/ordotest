@@ -1,11 +1,10 @@
 declare module '@event-calendar/core' {
-    export const EventCalendar: any;
+    export function createCalendar(element: HTMLElement, plugins: any[], options: any): any;
+    export function destroyCalendar(calendar: any): void;
 }
 declare module '@event-calendar/day-grid' {
-    const DayGrid: any;
-    export default DayGrid;
+    export const DayGrid: any;
 }
 declare module '@event-calendar/interaction' {
-    const Interaction: any;
-    export default Interaction;
+    export const Interaction: any;
 }
