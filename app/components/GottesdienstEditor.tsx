@@ -1,10 +1,9 @@
 'use client';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { ordoFileService } from './ordoFileSystem';
 import VorlagenMenu from './VorlagenMenu';
-import Editor from './Editor'; // Der neue Editor wird importiert
+import Editor from './Editor';
 
-// Dokument interface
 interface Dokument {
   id: string;
   titel: string;
@@ -14,105 +13,193 @@ interface Dokument {
   datum: any;
 }
 
-// EditorProps interface
-interface EditorProps {
+interface GottesdienstEditorProps {
   document: Dokument;
   onTitelChange: (wert: string) => void;
   onInhaltChange: (wert: string) => void;
+  onSpeichern?: () => void;
 }
 
-export default function GottesdienstEditor({ document, onTitelChange, onInhaltChange }: EditorProps) {
-    
-  const handlePrint = () => {
-    // TODO: Printing with Editor.js content needs a specific implementation
-    // For now, we can try to print the raw HTML or a formatted version of it.
-    window.print();
-  };
+export default function GottesdienstEditor({
+  document,
+  onTitelChange,
+  onInhaltChange,
+  onSpeichern,
+}: GottesdienstEditorProps) {
 
-  // RENDER GOTTESDIENST EDITOR (NEUER STIL mit Editor.js)
+  const handlePrint = useCallback(() => window.print(), []);
+
+  const handleVorlageWählen = useCallback((htmlContent: string) => {
+    // HTML direkt weitergeben – Editor.tsx konvertiert es intern
+    onInhaltChange(htmlContent);
+  }, [onInhaltChange]);
+
   return (
-    <div style={styles.editorContainer} className="editor-container">
-        {/* Die alte Toolbar wird entfernt, da Editor.js eine eigene UI mitbringt */}
-      
-      <div style={styles.headerBar}>
-        <VorlagenMenu onVorlageWählen={onInhaltChange} />
-        <button onClick={handlePrint} style={styles.actionButton}>🖨️ PDF</button>
-        <button 
-            onClick={() => ordoFileService.export(document)}
-            title="Als .ordo Datei speichern"
-            style={styles.actionButton}
+    <div style={styles.container} className="editor-container">
+
+      {/* ── Toolbar ── */}
+      <div style={styles.toolbar}>
+        <VorlagenMenu onVorlageWählen={handleVorlageWählen} />
+
+        <div style={styles.divider} />
+
+        <button
+          onClick={handlePrint}
+          style={styles.toolBtn}
+          title="Drucken / Als PDF speichern"
         >
-            💾 .ordo Export
+          🖨️ PDF
         </button>
+
+        <button
+          onClick={() => ordoFileService.export(document)}
+          style={styles.toolBtn}
+          title="Als .ordo-Datei exportieren"
+        >
+          💾 Export
+        </button>
+
+        {onSpeichern && (
+          <button
+            onClick={onSpeichern}
+            style={{ ...styles.toolBtn, ...styles.saveBtn }}
+            title="Manuell speichern"
+          >
+            ✓ Speichern
+          </button>
+        )}
+
+        {/* Autosave-Hinweis */}
+        <span style={styles.autosaveHint}>
+          ● Automatisch gespeichert
+        </span>
       </div>
 
-      <div style={styles.scrollableArea} className="printable-area">
-        <div style={styles.paperStyle}>
-          <input 
-            type="text" 
+      {/* ── Papier ── */}
+      <div style={styles.scrollArea} className="printable-area">
+        <div style={styles.paper}>
+
+          {/* Titel-Eingabe */}
+          <input
+            type="text"
             value={document.titel}
             onChange={(e) => onTitelChange(e.target.value)}
-            placeholder="Titel des Gottesdienstes..."
-            style={styles.gottesdienstTitelInput}
+            placeholder="Titel des Gottesdienstes…"
+            style={styles.titleInput}
           />
-          {/* Hier wird der neue Editor eingesetzt */}
+
+          <div style={styles.rule} />
+
+          {/* Editor.js – documentId sorgt für sauberes Neu-Laden beim Wechsel */}
           <Editor
-            value={document.inhalt} 
-            onChange={onInhaltChange} 
+            value={document.inhalt}
+            onChange={onInhaltChange}
+            documentId={document.id}
           />
         </div>
       </div>
+
+      {/* Druck-Stile */}
+      <style>{printCSS}</style>
     </div>
   );
 }
 
-// STYLES
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles: { [key: string]: React.CSSProperties } = {
-  editorContainer: { 
-    flex: 1, 
-    display: 'flex', 
-    flexDirection: 'column', 
-    backgroundColor: '#f1f3f4', 
-    overflow: 'hidden' 
-  },
-  headerBar: {
+  container: {
+    flex: 1,
     display: 'flex',
-    padding: '8px 20px',
-    background: '#f8f9fa',
-    borderBottom: '1px solid #ddd',
-    alignItems: 'center',
-    gap: '10px',
-    flexShrink: 0,
+    flexDirection: 'column',
+    backgroundColor: '#f1f3f4',
+    overflow: 'hidden',
   },
-  actionButton: {
-    padding: '5px 10px',
+  toolbar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 20px',
+    backgroundColor: 'white',
+    borderBottom: '1px solid #dde',
+    flexShrink: 0,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+  },
+  divider: {
+    width: '1px',
+    height: '24px',
+    backgroundColor: '#dde',
+    margin: '0 4px',
+  },
+  toolBtn: {
+    padding: '6px 14px',
     cursor: 'pointer',
     backgroundColor: 'white',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '0.9rem',
+    border: '1px solid #dde',
+    borderRadius: '6px',
+    fontSize: '0.875rem',
+    fontFamily: 'Georgia, serif',
+    color: '#2c3e50',
+    transition: 'background 0.15s',
   },
-  scrollableArea: {
-    overflowY: 'auto',
+  saveBtn: {
+    backgroundColor: '#e8f7ee',
+    borderColor: '#a8d8bc',
+    color: '#1a7a41',
+    fontWeight: 600,
+  },
+  autosaveHint: {
+    marginLeft: 'auto',
+    fontSize: '0.78rem',
+    color: '#27ae60',
+    opacity: 0.7,
+  },
+  scrollArea: {
     flex: 1,
-    padding: '20px 0',
+    overflowY: 'auto',
+    padding: '32px 0 80px',
+    backgroundColor: '#f1f3f4',
   },
-  paperStyle: {
+  paper: {
     width: '100%',
-    maxWidth: '850px',
-    backgroundColor: 'white',
-    padding: '40px 60px',
-    boxShadow: '0 0 10px rgba(0,0,0,0.1)',
-    minHeight: '1000px',
+    maxWidth: '860px',
     margin: '0 auto',
+    backgroundColor: 'white',
+    padding: '48px 64px',
+    boxShadow: '0 2px 16px rgba(0,0,0,0.08)',
+    minHeight: '1000px',
+    borderRadius: '2px',
   },
-  gottesdienstTitelInput: {
+  titleInput: {
     width: '100%',
-    fontSize: '2.5rem',
+    fontSize: '2.2rem',
+    fontWeight: 700,
+    fontFamily: 'Georgia, serif',
+    color: '#2c3e50',
     border: 'none',
     outline: 'none',
-    marginBottom: '30px',
-    color: '#2c3e50',
-    fontWeight: 'bold'
+    backgroundColor: 'transparent',
+    letterSpacing: '-0.01em',
+    marginBottom: '4px',
+  },
+  rule: {
+    height: '2px',
+    backgroundColor: '#eef0f3',
+    marginBottom: '28px',
+    borderRadius: '1px',
   },
 };
+
+const printCSS = `
+  @media print {
+    body * { visibility: hidden; }
+    .printable-area, .printable-area * { visibility: visible; }
+    .printable-area {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      padding: 20mm 25mm;
+    }
+    .ce-toolbar { display: none !important; }
+  }
+`;
