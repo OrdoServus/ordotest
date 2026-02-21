@@ -23,10 +23,6 @@ const Navbar: React.FC = () => {
           </Link>
         </div>
         <div style={styles.navButtons}>
-          <Link href="/dashboard" style={getLinkClass('/dashboard')}>
-            <Home size={18} style={{ marginRight: '8px' }} />
-            Dashboard
-          </Link>
           <Link href="/gottesdienste" style={getLinkClass('/gottesdienste')}>
             <Book size={18} style={{ marginRight: '8px' }} />
             Gottesdienste

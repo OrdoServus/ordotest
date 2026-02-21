@@ -292,12 +292,10 @@ export default function GottesdienstePage() {
         {aktuelleId && aktuellesDoc ? (
           <GottesdienstEditor
             key={aktuelleId}
-            titel={aktuellesDoc.titel}
-            inhalt={aktuellesDoc.inhalt}
+            document={aktuellesDoc}
             onTitelChange={(w) => handleUpdate('titel', w)}
             onInhaltChange={(w) => handleUpdate('inhalt', w)}
-            onSpeichern={() => {}}
-            document={aktuellesDoc}
+            onSpeichern={() => {}} // This is likely not needed due to autosave
           />
         ) : (
           <div style={{textAlign: 'center', padding: '50px', color: '#7f8c8d'}}>

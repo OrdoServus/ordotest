@@ -30,7 +30,7 @@ export default function InfoPage() {
       {/* Navigation Cards */}
       <section style={cardsSectionStyle}>
           <Link href="/info/downloads" style={cardLinkStyle}><div style={cardStyle}><h3>Downloads</h3><p>Apps für alle Geräte.</p></div></Link>
-          <Link href="/info/help" style={cardLinkStyle}><div style={cardStyle}><h3>Hilfe</h3><p>Anleitungen und FAQs.</p></div></Link>
+          <a href="https://github.com/ordoservus/ordoservus/wiki" target="_blank" rel="noopener noreferrer" style={cardLinkStyle}><div style={cardStyle}><h3>Hilfe</h3><p>Anleitungen und FAQs.</p></div></a>
           <Link href="/info/kontakt" style={cardLinkStyle}><div style={cardStyle}><h3>Kontakt</h3><p>Schreiben Sie uns.</p></div></Link>
       </section>
 

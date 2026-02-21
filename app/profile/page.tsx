@@ -1,288 +1,179 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { useAuth } from '../AuthContext';
-import { db } from '../firebase/config';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../AuthContext';
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { doc, updateDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { db } from '../firebase/config';
+
+const roleOptions = ['Priester', 'Diakon', 'Pastoralassistent', 'Ehrenamtliche', 'Andere'];
+const countryOptions = ['Deutschland', 'Österreich', 'Schweiz', 'Liechtenstein', "Albanien", "Andorra", "Belgien", "Bosnien und Herzegowina", "Bulgarien", "Dänemark", "Estland", "Finnland", "Frankreich", "Griechenland", "Irland", "Island", "Italien", "Kasachstan", "Kosovo", "Kroatien", "Lettland", "Litauen", "Luxemburg", "Malta", "Mazedonien", "Moldawien", "Monaco", "Montenegro", "Niederlande", "Norwegen", "Polen", "Portugal", "Rumänien", "Russland", "San Marino", "Schweden", "Serbien", "Slowakei", "Slowenien", "Spanien", "Tschechien", "Türkei", "Ukraine", "Ungarn", "Vatikanstadt", "Vereinigtes Königreich", "Weissrussland", "Sonstiges"];
+
 
 export default function ProfilePage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading, refreshUserProfile } = useAuth();
   const router = useRouter();
-  const [name, setName] = useState('');
-  const [funktion, setFunktion] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Redirect if not logged in
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formData, setFormData] = useState<any>({});
+
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
+    if (!loading && !user) router.push('/login');
+    if (userProfile) setFormData({ ...userProfile });
+  }, [user, loading, userProfile, router]);
 
-  // Fetch existing profile data
-  useEffect(() => {
-    if (user) {
-      const fetchProfile = async () => {
-        setIsLoading(true);
-        try {
-          const profileRef = doc(db, 'users', user.uid, 'profile', 'data');
-          const profileSnap = await getDoc(profileRef);
-          
-          if (profileSnap.exists()) {
-            const data = profileSnap.data();
-            setName(data.name || '');
-            setFunktion(data.funktion || '');
-          }
-        } catch (error) {
-          console.error('Error fetching profile:', error);
-          setMessage({ type: 'error', text: 'Fehler beim Laden des Profils.' });
-        } finally {
-          setIsLoading(false);
-        }
-      };
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev: any) => ({ ...prev, [name]: value }));
+    setError(null);
+    setSuccess(null);
+  };
 
-      fetchProfile();
-    }
-  }, [user]);
-
-  const handleSave = async (e: React.FormEvent) => {
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    setIsSaving(true);
-    setMessage(null);
+    setError(null);
+    setSuccess(null);
+    setIsUpdating(true);
 
     try {
-      const profileRef = doc(db, 'users', user.uid, 'profile', 'data');
-      await setDoc(profileRef, {
-        name: name.trim(),
-        funktion: funktion.trim(),
-        email: user.email,
-        updatedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-      }, { merge: true });
+        if (formData.username && formData.username !== userProfile?.username) {
+            const q = query(collection(db, "users"), where("username", "==", formData.username));
+            if (!(await getDocs(q)).empty) throw new Error('Dieser Benutzername ist bereits vergeben.');
+        }
 
-      setMessage({ type: 'success', text: 'Profil erfolgreich gespeichert!' });
-      
-      // Redirect to home after a short delay
-      setTimeout(() => router.push('/'), 1500);
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      setMessage({ type: 'error', text: 'Fehler beim Speichern. Bitte versuchen Sie es erneut.' });
+        await updateDoc(doc(db, 'users', user.uid), formData);
+        if(refreshUserProfile) await refreshUserProfile();
+
+        setSuccess('Ihr Profil wurde erfolgreich aktualisiert.');
+        setIsEditMode(false);
+    } catch (error: any) {
+      setError(error.message || 'Fehler beim Aktualisieren des Profils.');
     } finally {
-      setIsSaving(false);
+      setIsUpdating(false);
     }
   };
 
-  const handleSkip = () => {
-    router.push('/');
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) return setError('Die neuen Passwörter stimmen nicht überein.');
+    if (!user?.email) return;
+
+    setError(null); setSuccess(null); setIsUpdating(true);
+    try {
+      const credential = EmailAuthProvider.credential(user.email, oldPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+      setSuccess('Ihr Passwort wurde erfolgreich aktualisiert.');
+      setIsModalOpen(false);
+    } catch (error) {
+      setError('Fehler bei der Passwortaktualisierung. Überprüfen Sie Ihr altes Passwort.');
+    } finally {
+      setIsUpdating(false);
+      setOldPassword(''); setNewPassword(''); setConfirmPassword('');
+    }
   };
 
-  if (authLoading || !user) {
-    return (
-      <div style={containerStyle}>
-        <div style={cardStyle}>
-          <div style={loadingContainerStyle}>
-            <div style={spinnerStyle}></div>
-            <p>Lade...</p>
-          </div>
-        </div>
-      </div>
-    );
+  if (loading || !user || !userProfile) {
+    return <div style={styles.loadingContainer}><div style={styles.spinner}></div></div>;
   }
 
-  if (isLoading) {
-    return (
-      <div style={containerStyle}>
-        <div style={cardStyle}>
-          <div style={loadingContainerStyle}>
-            <div style={spinnerStyle}></div>
-            <p>Profil wird geladen...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const renderProfileField = (label: string, name: string, type = 'text', options?: string[]) => (
+    <div style={styles.profileItem}>
+        <span style={styles.label}>{label}:</span>
+        {isEditMode ? (
+            type === 'select' ? (
+                <select name={name} value={formData[name] || ''} onChange={handleInputChange} style={styles.input}>{options?.map(o => <option key={o} value={o}>{o}</option>)}</select>
+            ) : (
+                <input name={name} type={type} value={formData[name] || ''} onChange={handleInputChange} style={styles.input} />
+            )
+        ) : (
+            <span>{name === 'birthdate' && userProfile[name] ? new Date(userProfile[name]).toLocaleDateString('de-DE') : userProfile[name] || '–'}</span>
+        )}
+    </div>
+  );
 
   return (
-    <div style={containerStyle}>
-      <div style={cardStyle}>
-        <h1 style={titleStyle}>Ihr Profil</h1>
-        <p style={subtitleStyle}>Diese Informationen werden für zukünftige Exporte verwendet.</p>
+    <div style={styles.container}>
+        <form onSubmit={handleProfileUpdate} style={styles.card}>
+            <h1 style={styles.title}>Mein Profil</h1>
+            {success && <p style={styles.successMessage}>{success}</p>}
+            {error && <p style={styles.errorMessage}>{error}</p>}
 
-        <form onSubmit={handleSave}>
-          <div style={inputGroupStyle}>
-            <label style={labelStyle}>Name *</label>
-            <input
-              type="text"
-              placeholder="z.B. Max Mustermann"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              style={inputStyle}
-              required
-              disabled={isSaving}
-            />
-          </div>
-          
-          <div style={inputGroupStyle}>
-            <label style={labelStyle}>Funktion</label>
-            <input
-              type="text"
-              placeholder="z.B. Pfarrer, Diakon, Lektorin"
-              value={funktion}
-              onChange={(e) => setFunktion(e.target.value)}
-              style={inputStyle}
-              disabled={isSaving}
-            />
-          </div>
-
-          <div style={buttonGroupStyle}>
-            <button 
-              type="button" 
-              onClick={handleSkip} 
-              disabled={isSaving}
-              style={skipButtonStyle}
-            >
-              Überspringen
-            </button>
+            <div style={styles.profileList}>
+                {renderProfileField('Vorname', 'firstName')}
+                {renderProfileField('Nachname', 'lastName')}
+                {renderProfileField('Benutzername', 'username')}
+                <div style={styles.profileItem}><span style={styles.label}>E-Mail:</span> <span>{user?.email || '–'}</span></div>
+                {renderProfileField('Geburtsdatum', 'birthdate', 'date')}
+                {renderProfileField('Telefonnummer', 'phoneNumber', 'tel')}
+                {renderProfileField('Pfarrei', 'parish')}
+                {renderProfileField('Land', 'country', 'select', countryOptions)}
+                {renderProfileField('Rolle', 'role', 'select', roleOptions)}
+            </div>
             
-            <button 
-              type="submit" 
-              disabled={isSaving || !name.trim()}
-              style={{
-                ...saveButtonStyle,
-                opacity: isSaving || !name.trim() ? 0.6 : 1,
-                cursor: isSaving || !name.trim() ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {isSaving ? 'Wird gespeichert...' : 'Speichern & Weiter'}
-            </button>
-          </div>
-        </form>
+            <div style={styles.actions}>
+                {isEditMode ? (
+                    <>
+                        <button type="button" onClick={() => { setIsEditMode(false); setFormData({...userProfile}); }} style={{...styles.button, ...styles.buttonSecondary}}>Abbrechen</button>
+                        <button type="submit" disabled={isUpdating} style={styles.button}>{isUpdating ? 'Wird gespeichert...' : 'Speichern'}</button>
+                    </>
+                ) : (
+                    <button type="button" onClick={() => setIsEditMode(true)} style={styles.button}>Profil bearbeiten</button>
+                )}
+            </div>
 
-        {message && (
-          <div style={{
-            ...messageStyle,
-            backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
-            color: message.type === 'success' ? '#155724' : '#721c24',
-            border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`,
-          }}>
-            {message.type === 'success' ? '✅ ' : '⚠️ '}
-            {message.text}
+            <button type="button" onClick={() => setIsModalOpen(true)} style={{...styles.button, marginTop: '10px'}}>Passwort ändern</button>
+            <button type="button" onClick={() => router.push('/')} style={{...styles.button, ...styles.buttonSecondary, marginTop: '10px'}}>Zurück zum Dashboard</button>
+      </form>
+
+      {isModalOpen && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <h2>Passwort ändern</h2>
+            <form onSubmit={handlePasswordChange}>
+              <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} placeholder="Altes Passwort" required style={styles.inputModal}/>
+              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Neues Passwort" required style={styles.inputModal}/>
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Neues Passwort bestätigen" required style={styles.inputModal}/>
+              {error && <p style={{color: 'red', fontSize: '0.9rem'}}>{error}</p>}
+              <div style={styles.modalActions}>
+                <button type="button" onClick={() => setIsModalOpen(false)} style={{...styles.button, ...styles.buttonSecondary}}>Abbrechen</button>
+                <button type="submit" disabled={isUpdating} style={styles.button}>{isUpdating ? 'Wird geändert...' : 'Ändern'}</button>
+              </div>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// Styles
-const containerStyle: React.CSSProperties = {
-  minHeight: '100vh',
-  backgroundColor: '#f4f7f6',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  padding: '20px',
-};
-
-const cardStyle: React.CSSProperties = {
-  backgroundColor: 'white',
-  borderRadius: '15px',
-  boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
-  padding: '40px',
-  width: '100%',
-  maxWidth: '500px'
-};
-
-const loadingContainerStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: '15px',
-  padding: '40px',
-};
-
-const spinnerStyle: React.CSSProperties = {
-  width: '40px',
-  height: '40px',
-  border: '4px solid #f3f3f3',
-  borderTop: '4px solid #ef5c22',
-  borderRadius: '50%',
-  animation: 'spin 1s linear infinite',
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: '2rem',
-  color: '#2c3e50',
-  textAlign: 'center',
-  margin: '0 0 10px 0'
-};
-
-const subtitleStyle: React.CSSProperties = {
-  textAlign: 'center',
-  color: '#7f8c8d',
-  fontSize: '1rem',
-  margin: '0 0 30px 0'
-};
-
-const inputGroupStyle: React.CSSProperties = {
-  marginBottom: '20px'
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  marginBottom: '8px',
-  color: '#2c3e50',
-  fontWeight: '500'
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '12px',
-  borderRadius: '8px',
-  border: '1px solid #ccc',
-  fontSize: '1rem',
-  boxSizing: 'border-box',
-  transition: 'border-color 0.2s',
-};
-
-const buttonGroupStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: '10px',
-  marginTop: '20px',
-};
-
-const skipButtonStyle: React.CSSProperties = {
-  flex: 1,
-  padding: '15px',
-  backgroundColor: '#95a5a6',
-  color: 'white',
-  border: 'none',
-  borderRadius: '8px',
-  fontSize: '1rem',
-  cursor: 'pointer',
-  transition: 'background 0.2s',
-};
-
-const saveButtonStyle: React.CSSProperties = {
-  flex: 2,
-  padding: '15px',
-  backgroundColor: '#2c3e50',
-  color: 'white',
-  border: 'none',
-  borderRadius: '8px',
-  fontSize: '1.1rem',
-  fontWeight: 500,
-  transition: 'background 0.2s',
-};
-
-const messageStyle: React.CSSProperties = {
-  marginTop: '20px',
-  padding: '12px',
-  borderRadius: '8px',
-  textAlign: 'center',
-  fontSize: '0.95rem',
+const styles: { [key: string]: React.CSSProperties } = {
+    container: { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f1f3f4', padding: '20px 0' },
+    loadingContainer: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' },
+    spinner: { width: '50px', height: '50px', border: '4px solid #f3f3f3', borderTop: '4px solid #ef5c22', borderRadius: '50%', animation: 'spin 1s linear infinite' },
+    card: { padding: '40px 50px', borderRadius: '12px', background: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', width: '100%', maxWidth: '700px', textAlign: 'left' },
+    title: { fontSize: '2.2rem', color: '#2c3e50', marginBottom: '20px', textAlign: 'center' },
+    profileList: { display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' },
+    profileItem: { display: 'grid', gridTemplateColumns: '250px 1fr', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '10px' },
+    label: { fontWeight: 600, color: '#555' },
+    input: { width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '1rem' },
+    button: { padding: '12px 18px', borderRadius: '8px', border: 'none', background: '#ef5c22', color: 'white', fontSize: '1rem', cursor: 'pointer', fontWeight: 500, width: '100%' },
+    buttonSecondary: { background: '#f0f2f5', color: '#2c3e50', border: '1px solid #ddd' },
+    actions: { display: 'flex', gap: '15px' },
+    modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center' },
+    modalContent: { background: 'white', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 5px 15px rgba(0,0,0,0.3)' },
+    modalActions: { display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' },
+    inputModal: { width: '100%', padding: '12px 15px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1rem', boxSizing: 'border-box', marginBottom: '10px' },
+    successMessage: { color: '#27ae60', textAlign: 'center', marginBottom: '15px', background: '#e9f7ef', padding: '10px', borderRadius: '8px' }, 
+    errorMessage: { color: '#c0392b', textAlign: 'center', marginBottom: '15px', background: '#fee', padding: '10px', borderRadius: '8px' },
 };

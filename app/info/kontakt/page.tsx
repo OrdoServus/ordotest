@@ -36,17 +36,13 @@ export default function KontaktPage() {
           {/* Other Options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={sideCardStyle}>
-              <h4>🚀 Technischer Support</h4>
-              <p>Fehler und Wünsche können Sie direkt auf GitHub melden.</p>
+              <h4>🚀 Technischer Support & Hilfe</h4>
+              <p>Fehler, Wünsche und Antworten auf Ihre Fragen finden Sie auf GitHub.</p>
               <a href="https://github.com/ordoservus/ordoservus/issues" target="_blank" style={buttonStyle('#2c3e50')}>
                 GitHub Issues
               </a>
-            </div>
-            <div style={sideCardStyle}>
-              <h4>❓ Hilfe-Portal</h4>
-              <p>Viele Antworten finden Sie bereits in unserem Hilfe-Bereich.</p>
-              <a href="/info/help" style={buttonStyle('#ef5c22')}>
-                Zur Hilfe
+               <a href="https://github.com/ordoservus/ordoservus/wiki" target="_blank" style={buttonStyle('#ef5c22')}>
+                Hilfe & Dokumentation
               </a>
             </div>
           </div>
