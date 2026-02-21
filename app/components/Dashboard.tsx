@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../AuthContext';
 import { auth } from '../firebase/config';
 import { signOut } from 'firebase/auth';
+import UpcomingAppointments from './UpcomingAppointments'; // Import der neuen Komponente
 
 // TypeScript-Interfaces für Typensicherheit
 interface Dokument {
@@ -42,6 +43,11 @@ export default function Dashboard({ dokumente, onNeuGottesdienst, onNeuNotiz }: 
 
         <div style={bannerStyle}>
             Information: Diese Anwendung ist in der ALPHA-Phase! <a href="/info" style={{ color: '#007bff', cursor: 'pointer', textDecoration: 'none' }}>Mehr erfahren</a>
+        </div>
+
+        {/* HIER WIRD DIE NEUE KOMPONENTE EINGEFÜGT */}
+        <div style={{width: '100%', maxWidth: '1000px', padding: '0 20px', marginBottom: '30px'}}>
+            <UpcomingAppointments />
         </div>
 
         <div style={gridStyle}>
