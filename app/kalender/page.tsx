@@ -1,16 +1,18 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
-import { createCalendar, destroyCalendar } from '@event-calendar/core';
+// FINAL, FINAL FIX: Changed to a default import, which is the correct syntax.
+import Calendar from '@event-calendar/core';
 import DayGrid from '@event-calendar/day-grid';
 import Interaction from '@event-calendar/interaction';
 import '@event-calendar/core/index.css';
+
 import { db } from '../firebase/config';
-import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../AuthContext';
 
 interface CalendarInstance {
   destroy: () => void;
-  setOption: (name: string, value: any) => void;
+  setOptions: (options: any) => void;
   [key: string]: any;
 }
 
@@ -55,16 +57,15 @@ export default function KalenderPage() {
     if (!calendarRef.current || !user) return;
 
     if (ecRef.current) {
-      ecRef.current.setOption('events', events);
-      return;
+      ecRef.current.destroy();
     }
 
-    ecRef.current = createCalendar(
-      calendarRef.current, 
-      {
-        plugins: [DayGrid, Interaction],
+    const calendar = new Calendar({
+      target: calendarRef.current,
+      plugins: [DayGrid, Interaction],
+      options: {
         view: 'dayGridMonth',
-        events: events,
+        events: events, 
         locale: 'de',
         headerToolbar: {
           left: 'prev,next today',
@@ -77,22 +78,30 @@ export default function KalenderPage() {
           week: 'Woche',
           day: 'Tag',
         },
-        eventClick: (info) => {
-          setSelectedEvent(info.event as CalendarEvent);
+        eventClick: (info: any) => {
+          const clickedEvent: CalendarEvent = {
+              id: info.event.id,
+              title: info.event.title,
+              start: info.event.start,
+              end: info.event.end,
+              allDay: info.event.allDay,
+              extendedProps: info.event.extendedProps
+          };
+          setSelectedEvent(clickedEvent);
           setIsViewModalOpen(true);
         },
-        dateClick: (info) => {
+        dateClick: (info: any) => {
           setEditingEvent({ start: info.dateStr, allDay: true, title: '', extendedProps: { description: '' } });
           setIsEditModalOpen(true);
         }
       }
-    ) as CalendarInstance;
+    });
+
+    ecRef.current = calendar as unknown as CalendarInstance;
 
     return () => {
-      if (ecRef.current) {
-        destroyCalendar(ecRef.current);
-        ecRef.current = null;
-      }
+      calendar.destroy();
+      ecRef.current = null;
     };
   }, [events, user]);
 
