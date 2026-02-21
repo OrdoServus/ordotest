@@ -1,12 +1,12 @@
 'use client';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { db } from '../firebase/config';
 import { collection, query, where, orderBy, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, QueryDocumentSnapshot, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { useAuth } from '../AuthContext';
 
-
-import NotizEditor from '../components/NotizEditor';
+const Editor = dynamic(() => import('../components/Editor'), { ssr: false });
 import NotebooksColumn from '../components/NotebooksColumn';
 import SectionsAndPagesColumn from '../components/SectionsAndPagesColumn';
 import ContextMenu from '../components/ContextMenu';
@@ -37,7 +37,6 @@ interface Page {
   isFavorit: boolean;
   datum: any;
 }
-
 
 type ContextMenuTarget = { x: number; y: number; type: 'notebook' | 'section' | 'page'; id: string; name: string; };
 
@@ -386,15 +385,26 @@ export default function NotizenPage() {
   const renderMainContent = () => {
     if (activePageId && activePage) {
       return (
-        <NotizEditor // Geändert
-          key={activePageId}
-          titel={activePage.titel}
-          inhalt={activePage.inhalt}
-          onTitelChange={(w) => handleUpdatePage('titel', w)}
-          onInhaltChange={(w) => handleUpdatePage('inhalt', w)}
-          onSpeichern={() => {}}
-          document={activePage as any}
-        />
+        <div style={{ padding: '20px', overflowY: 'auto' }}>
+          <input 
+            type="text" 
+            value={activePage.titel} 
+            onChange={(e) => handleUpdatePage('titel', e.target.value)} 
+            style={{ 
+              width: '100%', 
+              fontSize: '2rem', 
+              fontWeight: 'bold', 
+              border: 'none', 
+              outline: 'none',
+              marginBottom: '20px'
+            }}
+          />
+          <Editor
+            documentId={activePageId}
+            value={activePage.inhalt}
+            onChange={(v) => handleUpdatePage('inhalt', v)}
+          />
+        </div>
       );
     }
     if (activeNotebook) {

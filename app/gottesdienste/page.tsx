@@ -1,12 +1,13 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { db } from '../firebase/config';
 import { useAuth } from '../AuthContext';
 import { collection, query, where, orderBy, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 import Sidebar from '../components/Sidebar';
-import GottesdienstEditor from '../components/GottesdienstEditor';
+const Editor = dynamic(() => import('../components/Editor'), { ssr: false });
 
 // TypeScript-Interfaces
 interface Dokument {
@@ -16,6 +17,7 @@ interface Dokument {
   typ: 'gottesdienst' | 'notiz';
   isFavorit: boolean;
   datum: any;
+  createdAt: any;
 }
 
 // Cache für Gottesdienste
@@ -140,7 +142,6 @@ export default function GottesdienstePage() {
     if (!user) return;
     
     const newDoc = {
-      user_id: user.uid,
       titel: 'Neuer Gottesdienst',
       inhalt: '# Neuer Gottesdienst\n\nFügen Sie hier Ihren Inhalt ein.',
       datum: new Date().toISOString(),
@@ -153,7 +154,7 @@ export default function GottesdienstePage() {
       const docRef = doc(collection(db, 'users', user.uid, 'dokumente'));
       await setDoc(docRef, newDoc);
       
-      const createdDoc = { ...newDoc, id: docRef.id } as Dokument;
+      const createdDoc = { ...newDoc, id: docRef.id, datum: new Date().toISOString() } as Dokument;
       setDokumente(prev => [createdDoc, ...prev]);
       setAktuelleId(docRef.id);
       
@@ -202,7 +203,6 @@ export default function GottesdienstePage() {
     if (!original) return;
 
     const kopie = {
-      user_id: user.uid,
       titel: `${original.titel} (Kopie)`,
       inhalt: original.inhalt,
       datum: new Date().toISOString(),
@@ -215,7 +215,7 @@ export default function GottesdienstePage() {
       const docRef = doc(collection(db, 'users', user.uid, 'dokumente'));
       await setDoc(docRef, kopie);
       
-      const createdDoc = { ...kopie, id: docRef.id } as Dokument;
+      const createdDoc = { ...kopie, id: docRef.id, datum: new Date().toISOString() } as Dokument;
       setDokumente(prev => [createdDoc, ...prev]);
       
       // Cache aktualisieren
@@ -290,13 +290,26 @@ export default function GottesdienstePage() {
       />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {aktuelleId && aktuellesDoc ? (
-          <GottesdienstEditor
-            key={aktuelleId}
-            document={aktuellesDoc}
-            onTitelChange={(w) => handleUpdate('titel', w)}
-            onInhaltChange={(w) => handleUpdate('inhalt', w)}
-            onSpeichern={() => {}} // This is likely not needed due to autosave
-          />
+           <div style={{ padding: '20px', overflowY: 'auto' }}>
+           <input 
+             type="text" 
+             value={aktuellesDoc.titel} 
+             onChange={(e) => handleUpdate('titel', e.target.value)} 
+             style={{ 
+               width: '100%', 
+               fontSize: '2rem', 
+               fontWeight: 'bold', 
+               border: 'none', 
+               outline: 'none',
+               marginBottom: '20px'
+             }}
+           />
+           <Editor
+             documentId={aktuelleId}
+             value={aktuellesDoc.inhalt}
+             onChange={(v) => handleUpdate('inhalt', v)}
+           />
+         </div>
         ) : (
           <div style={{textAlign: 'center', padding: '50px', color: '#7f8c8d'}}>
             <h2>Gottesdienst auswählen</h2>

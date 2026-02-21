@@ -6,6 +6,19 @@ const withPWA = require("next-pwa")({
 });
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'layout-animations=(self)',
+          },
+        ],
+      },
+    ];
+  },
   turbopack: {
     // Hier können später Regeln für Turbopack rein
   },

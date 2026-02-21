@@ -171,7 +171,9 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
     lastExtValue.current = value;
 
     return () => {
-      editorRef.current?.destroy();
+      if (editorRef.current && typeof editorRef.current.destroy === 'function') {
+        editorRef.current.destroy();
+      }
       editorRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
