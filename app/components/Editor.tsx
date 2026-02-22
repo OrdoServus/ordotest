@@ -11,111 +11,34 @@ import Quote from '@editorjs/quote';
 import Delimiter from '@editorjs/delimiter';
 // @ts-ignore
 import Table from '@editorjs/table';
-// @ts-ignore
-import edjsHTML from 'editorjs-html';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface EditorProps {
-  /** HTML-String aus Firestore oder Vorlage */
-  value: string;
-  /** Wird mit HTML-String aufgerufen wenn der Nutzer etwas schreibt */
-  onChange: (html: string) => void;
-  /**
-   * ID des aktuellen Dokuments.
-   * Wenn sich diese ändert, wird der Editor mit neuem Inhalt neu geladen.
-   */
+  /** Editor.js OutputData object from Firestore */
+  value: OutputData;
+  /** Called with OutputData when the user types */
+  onChange: (data: OutputData) => void;
+  /** ID of the current document */
   documentId?: string;
 }
 
-// ─── Konverter ────────────────────────────────────────────────────────────────
+// ─── Empty State ──────────────────────────────────────────────────────────────
 
-const outputToHtml = (data: OutputData): string => {
-  try {
-    const parser = edjsHTML();
-    return parser.parse(data).join('');
-  } catch {
-    return '';
-  }
-};
-
-/**
- * HTML → EditorJS blocks
- * Eigener DOM-Parser – kein html-to-editorjs Paket nötig.
- * Unterstützt alle OrdoServus-Vorlagen: h1–h4, p, ul, ol, blockquote, hr, table.
- */
-const htmlToOutput = (html: string): OutputData => {
-  if (!html?.trim() || typeof window === 'undefined') return { blocks: [] };
-
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  const blocks: any[] = [];
-
-  div.childNodes.forEach((node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent?.trim();
-      if (text) blocks.push({ type: 'paragraph', data: { text } });
-      return;
-    }
-    if (node.nodeType !== Node.ELEMENT_NODE) return;
-
-    const el = node as HTMLElement;
-    const tag = el.tagName.toLowerCase();
-    const inner = el.innerHTML.trim();
-    const text = el.textContent?.trim() ?? '';
-
-    if (!text && !inner) return;
-
-    switch (tag) {
-      case 'h1': blocks.push({ type: 'header', data: { text: inner, level: 1 } }); break;
-      case 'h2': blocks.push({ type: 'header', data: { text: inner, level: 2 } }); break;
-      case 'h3': blocks.push({ type: 'header', data: { text: inner, level: 3 } }); break;
-      case 'h4': blocks.push({ type: 'header', data: { text: inner, level: 4 } }); break;
-      case 'ul': {
-        const items = Array.from(el.querySelectorAll(':scope > li')).map(li => li.innerHTML.trim());
-        if (items.length) blocks.push({ type: 'list', data: { style: 'unordered', items } });
-        break;
-      }
-      case 'ol': {
-        const items = Array.from(el.querySelectorAll(':scope > li')).map(li => li.innerHTML.trim());
-        if (items.length) blocks.push({ type: 'list', data: { style: 'ordered', items } });
-        break;
-      }
-      case 'blockquote':
-        blocks.push({ type: 'quote', data: { text: inner, caption: '', alignment: 'left' } });
-        break;
-      case 'hr':
-        blocks.push({ type: 'delimiter', data: {} });
-        break;
-      case 'table': {
-        const rows = Array.from(el.querySelectorAll('tr')).map(row =>
-          Array.from(row.querySelectorAll('td, th')).map(cell => cell.innerHTML.trim())
-        );
-        if (rows.length) blocks.push({ type: 'table', data: { withHeadings: false, content: rows } });
-        break;
-      }
-      default:
-        if (inner) blocks.push({ type: 'paragraph', data: { text: inner } });
-    }
-  });
-
-  return { blocks };
-};
+const EMPTY_DATA: OutputData = { blocks: [] };
 
 // ─── Komponente ───────────────────────────────────────────────────────────────
 
 const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
-  const holderRef      = useRef<HTMLDivElement>(null);
-  const editorRef      = useRef<EditorJS | null>(null);
-  const currentDocId   = useRef<string | undefined>(undefined);
-  // Stumm-Flag: kein onChange-Call während wir Inhalt laden
-  const isSilent       = useRef(false);
-  // Letzter von außen gesetzter Wert
-  const lastExtValue   = useRef<string>(value);
+  const holderRef    = useRef<HTMLDivElement>(null);
+  const editorRef    = useRef<EditorJS | null>(null);
+  const currentDocId = useRef<string | undefined>(undefined);
+  const isSilent     = useRef(false);
+  const lastExtValue = useRef<OutputData>(value);
 
   // ── Editor initialisieren ─────────────────────────────────────────────────
 
-  const initEditor = useCallback(async (html: string) => {
+  const initEditor = useCallback(async (data: OutputData) => {
     if (!holderRef.current) return;
 
     if (editorRef.current) {
@@ -132,24 +55,19 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
       holder: holderRef.current,
       placeholder: 'Schreiben Sie hier oder wählen Sie eine Vorlage…',
       tools: {
-        header: {
-          class: Header,
-          config: { levels: [1, 2, 3, 4], defaultLevel: 2 },
-          inlineToolbar: true,
-        },
+        header: { class: Header, config: { levels: [1, 2, 3, 4], defaultLevel: 2 }, inlineToolbar: true },
         list:      { class: List,      inlineToolbar: true },
         quote:     { class: Quote,     inlineToolbar: true },
         delimiter: Delimiter,
         table:     { class: Table,     inlineToolbar: true },
       },
-      data: htmlToOutput(html),
+      data: data,
       onChange: async (api) => {
         if (isSilent.current) return;
         try {
-          const saved = await api.saver.save();
-          const result = outputToHtml(saved);
-          lastExtValue.current = result;
-          onChange(result);
+          const savedData = await api.saver.save();
+          lastExtValue.current = savedData;
+          onChange(savedData);
         } catch { /* ignorieren */ }
       },
     });
@@ -163,49 +81,43 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
     }
   }, [onChange]);
 
-  // ── Mount ─────────────────────────────────────────────────────────────────
+  // ── Mount & Dokument-Wechsel ──────────────────────────────────────────────
 
   useEffect(() => {
-    initEditor(value);
+    const dataToLoad = value && value.blocks?.length > 0 ? value : EMPTY_DATA;
+    initEditor(dataToLoad);
     currentDocId.current = documentId;
-    lastExtValue.current = value;
+    lastExtValue.current = dataToLoad;
+  }, [documentId, initEditor]); // Re-init on document change
 
-    return () => {
-      if (editorRef.current && typeof editorRef.current.destroy === 'function') {
-        editorRef.current.destroy();
-      }
-      editorRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Dokument gewechselt ───────────────────────────────────────────────────
+  // ── Extern geänderter Wert (z.B. Vorlage) ──────────────────────────────────
 
   useEffect(() => {
-    if (documentId === undefined || documentId === currentDocId.current) return;
-    currentDocId.current = documentId;
+    if (value === lastExtValue.current || documentId !== currentDocId.current) return;
+    
     lastExtValue.current = value;
-    initEditor(value);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId]);
+    if (!editorRef.current?.isReady) return;
 
-  // ── Template von aussen angewendet (selbes Dokument, neuer HTML-Inhalt) ──
-
-  useEffect(() => {
-    if (value === lastExtValue.current) return;
-    if (documentId !== currentDocId.current) return;
-    lastExtValue.current = value;
-
-    if (!editorRef.current) return;
     editorRef.current.isReady
       .then(() => {
         isSilent.current = true;
-        return editorRef.current!.render(htmlToOutput(value));
+        return editorRef.current!.render(value && value.blocks?.length ? value : EMPTY_DATA);
       })
       .then(() => { isSilent.current = false; })
       .catch(() => { isSilent.current = false; });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+
+  }, [value, documentId]);
+
+  // ── Cleanup ─────────────────────────────────────────────────────────────────
+  
+  useEffect(() => {
+    return () => {
+      if (editorRef.current && typeof editorRef.current.destroy === 'function') {
+        try { editorRef.current.destroy(); } catch {}
+      }
+      editorRef.current = null;
+    };
+  }, []);
 
   return (
     <>
@@ -214,6 +126,7 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
     </>
   );
 };
+
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 

@@ -1,28 +1,46 @@
 'use client';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { db } from '../firebase/config';
 import { useAuth } from '../AuthContext';
-import { collection, query, where, orderBy, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  onSnapshot,
+  addDoc,
+} from 'firebase/firestore';
+import { OutputData } from '@editorjs/editorjs';
 
 import Sidebar from '../components/Sidebar';
+import VorlagenMenu from '../components/VorlagenMenu';
 const Editor = dynamic(() => import('../components/Editor'), { ssr: false });
 
-// TypeScript-Interfaces
+// ─── Interfaces ───────────────────────────────────────────────────────────────
+
 interface Dokument {
   id: string;
   titel: string;
-  inhalt: string;
+  inhalt: OutputData;
   typ: 'gottesdienst' | 'notiz';
   isFavorit: boolean;
   datum: any;
   createdAt: any;
 }
 
-// Cache für Gottesdienste
-const gottesdienstCache = new Map<string, { data: Dokument[]; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 Minuten
+type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
+
+const EMPTY_INHALT: OutputData = { blocks: [] };
+
+// ─── Komponente ───────────────────────────────────────────────────────────────
 
 export default function GottesdienstePage() {
   const { user, loading } = useAuth();
@@ -32,174 +50,182 @@ export default function GottesdienstePage() {
   const [dokumente, setDokumente] = useState<Dokument[]>([]);
   const [aktuelleId, setAktuelleId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  const lastFetchRef = useRef<number>(0);
-  const isFetchingRef = useRef<boolean>(false);
-  const pendingUpdatesRef = useRef<Map<string, any>>(new Map());
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
 
+  // Refs für Debounce / Auto-Save
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingTitelRef = useRef<string | null>(null);
+  const pendingInhaltRef = useRef<OutputData | null>(null);
+  const isSavingRef = useRef(false);
+
+  // ── Auth-Guard ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
+    if (!loading && !user) router.push('/login');
   }, [user, loading, router]);
 
+  // ── URL-Parameter ──────────────────────────────────────────────────────────
   useEffect(() => {
     const docId = searchParams.get('doc');
-    if (docId) {
-      setAktuelleId(docId);
-    }
+    if (docId) setAktuelleId(docId);
   }, [searchParams]);
 
-  // Optimierte Datenladung mit Caching
-  const fetchDokumente = useCallback(async (forceRefresh = false) => {
+  // ── Firestore: Dokumente laden (Echtzeit) ──────────────────────────────────
+  useEffect(() => {
     if (!user) return;
-    
-    if (isFetchingRef.current) return;
-    
-    const cacheKey = user.uid;
-    const now = Date.now();
-    
-    // Cache prüfen
-    if (!forceRefresh) {
-      const cached = gottesdienstCache.get(cacheKey);
-      if (cached && (now - cached.timestamp) < CACHE_DURATION) {
-        console.log('📦 Using cached gottesdienste');
-        setDokumente(cached.data);
+
+    const q = query(
+      collection(db, 'users', user.uid, 'dokumente'),
+      where('typ', '==', 'gottesdienst'),
+      orderBy('datum', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const docs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as Dokument[];
+        setDokumente(docs);
         setIsLoading(false);
-        return;
+      },
+      (error) => {
+        console.error('Fehler beim Laden der Gottesdienste:', error);
+        setIsLoading(false);
       }
-    }
+    );
 
-    // Rate Limiting
-    if (!forceRefresh && (now - lastFetchRef.current) < 10000) {
-      console.log('⏳ Rate limited');
-      return;
-    }
-
-    isFetchingRef.current = true;
-    lastFetchRef.current = now;
-
-    try {
-      const q = query(
-        collection(db, 'users', user.uid, 'dokumente'),
-        where('typ', '==', 'gottesdienst'),
-        orderBy('datum', 'desc')
-      );
-      
-      const snapshot = await getDocs(q);
-      const docs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Dokument[];
-
-      gottesdienstCache.set(cacheKey, { data: docs, timestamp: now });
-      setDokumente(docs);
-    } catch (error) {
-      console.error('Error fetching documents:', error);
-    } finally {
-      setIsLoading(false);
-      isFetchingRef.current = false;
-    }
+    return () => unsubscribe();
   }, [user]);
 
-  useEffect(() => {
-    if (user) {
-      fetchDokumente();
+  // ── Speichern ─────────────────────────────────────────────────────────────
+
+  const saveNow = useCallback(async (): Promise<boolean> => {
+    if (!user || !aktuelleId) return false;
+    if (pendingTitelRef.current === null && pendingInhaltRef.current === null) return true;
+    if (isSavingRef.current) return false;
+
+    isSavingRef.current = true;
+    setSaveStatus('saving');
+
+    const updates: Partial<Omit<Dokument, 'id'>> = {};
+    if (pendingTitelRef.current !== null) updates.titel = pendingTitelRef.current;
+    if (pendingInhaltRef.current !== null) updates.inhalt = pendingInhaltRef.current;
+
+    try {
+      await updateDoc(doc(db, 'users', user.uid, 'dokumente', aktuelleId), updates);
+      pendingTitelRef.current = null;
+      pendingInhaltRef.current = null;
+      setSaveStatus('saved');
+
+      setTimeout(() => setSaveStatus((s) => (s === 'saved' ? 'idle' : s)), 2000);
+      return true;
+    } catch (error) {
+      console.error('Fehler beim Speichern:', error);
+      setSaveStatus('error');
+      return false;
+    } finally {
+      isSavingRef.current = false;
     }
-  }, [user, fetchDokumente]);
-
-  // Debounced Update Funktion
-  const handleUpdate = useCallback(async (feld: 'titel' | 'inhalt', wert: string) => {
-    if (!user || !aktuelleId) return;
-    
-    // Lokales Update sofort (optimistisch)
-    setDokumente(prev => prev.map(d => 
-      d.id === aktuelleId ? { ...d, [feld]: wert } : d
-    ));
-
-    // In pending queue speichern
-    const key = `${aktuelleId}_${feld}`;
-    pendingUpdatesRef.current.set(key, { feld, wert, timestamp: Date.now() });
-
-    // Debounced Firestore Update (500ms)
-    setTimeout(async () => {
-      const update = pendingUpdatesRef.current.get(key);
-      if (update && update.wert === wert) {
-        try {
-          const docRef = doc(db, 'users', user.uid, 'dokumente', aktuelleId);
-          await updateDoc(docRef, { [feld]: wert });
-          pendingUpdatesRef.current.delete(key);
-        } catch (error) {
-          console.error('Error updating document:', error);
-        }
-      }
-    }, 500);
   }, [user, aktuelleId]);
 
-  const aktuellesDoc = dokumente.find(d => d.id === aktuelleId);
+  const scheduleAutoSave = useCallback(() => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    setSaveStatus('pending');
+    autoSaveTimerRef.current = setTimeout(() => { saveNow(); }, 5000);
+  }, [saveNow]);
+
+  const handleWähleDokument = useCallback(async (id: string) => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    await saveNow();
+    setAktuelleId(id);
+    router.push(`/gottesdienste?doc=${id}`, { scroll: false });
+    setSaveStatus('idle');
+  }, [saveNow, router]);
+
+  // ── Felder aktualisieren ──────────────────────────────────────────────────
+
+  const handleUpdateTitel = useCallback((wert: string) => {
+    if (!aktuelleId) return;
+    setDokumente((prev) => prev.map((d) => (d.id === aktuelleId ? { ...d, titel: wert } : d)));
+    pendingTitelRef.current = wert;
+    scheduleAutoSave();
+  }, [aktuelleId, scheduleAutoSave]);
+
+  const handleUpdateInhalt = useCallback((wert: OutputData) => {
+    if (!aktuelleId) return;
+    setDokumente((prev) => prev.map((d) => (d.id === aktuelleId ? { ...d, inhalt: wert } : d)));
+    pendingInhaltRef.current = wert;
+    scheduleAutoSave();
+  }, [aktuelleId, scheduleAutoSave]);
+
+  // ── Manuelles Speichern & Unload-Handler ───────────────────────────────────
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+        saveNow();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (pendingTitelRef.current !== null || pendingInhaltRef.current !== null) {
+        // Zwar wird `saveNow` asynchron aufgerufen, aber der Browser
+        // blockiert normalerweise lange genug, damit die Anfrage gesendet wird.
+        saveNow();
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [saveNow]);
+  
+  // ── CRUD ──────────────────────────────────────────────────────────────────
 
   const erstelleNeuenGottesdienst = useCallback(async () => {
     if (!user) return;
-    
-    const newDoc = {
+
+    const newDocData = {
       titel: 'Neuer Gottesdienst',
-      inhalt: '# Neuer Gottesdienst\n\nFügen Sie hier Ihren Inhalt ein.',
+      inhalt: EMPTY_INHALT,
       datum: new Date().toISOString(),
       isFavorit: false,
-      typ: 'gottesdienst',
+      typ: 'gottesdienst' as const,
       createdAt: serverTimestamp(),
     };
 
     try {
-      const docRef = doc(collection(db, 'users', user.uid, 'dokumente'));
-      await setDoc(docRef, newDoc);
-      
-      const createdDoc = { ...newDoc, id: docRef.id, datum: new Date().toISOString() } as Dokument;
-      setDokumente(prev => [createdDoc, ...prev]);
-      setAktuelleId(docRef.id);
-      
-      // Cache aktualisieren
-      const cacheKey = user.uid;
-      const cached = gottesdienstCache.get(cacheKey);
-      if (cached) {
-        gottesdienstCache.set(cacheKey, { 
-          data: [createdDoc, ...cached.data], 
-          timestamp: Date.now() 
-        });
-      }
+      const docRef = await addDoc(collection(db, 'users', user.uid, 'dokumente'), newDocData);
+      handleWähleDokument(docRef.id);
     } catch (error) {
-      console.error('Error creating document:', error);
+      console.error('Fehler beim Erstellen:', error);
     }
-  }, [user]);
+  }, [user, handleWähleDokument]);
 
   const handleLöschen = useCallback(async (id: string) => {
-    if (!user || !confirm("Möchten Sie diesen Gottesdienst wirklich endgültig löschen?")) return;
-    
+    if (!user || !confirm('Möchten Sie diesen Gottesdienst wirklich endgültig löschen?')) return;
+
     try {
       await deleteDoc(doc(db, 'users', user.uid, 'dokumente', id));
-      
-      // Lokales Update
-      setDokumente(prev => prev.filter(d => d.id !== id));
-      if (aktuelleId === id) setAktuelleId(null);
-      
-      // Cache aktualisieren
-      const cacheKey = user.uid;
-      const cached = gottesdienstCache.get(cacheKey);
-      if (cached) {
-        gottesdienstCache.set(cacheKey, {
-          data: cached.data.filter(d => d.id !== id),
-          timestamp: Date.now()
-        });
+      if (aktuelleId === id) {
+        setAktuelleId(null);
+        router.push('/gottesdienste', { scroll: false });
+        setSaveStatus('idle');
       }
     } catch (error) {
-      console.error('Error deleting document:', error);
+      console.error('Fehler beim Löschen:', error);
     }
-  }, [user, aktuelleId]);
+  }, [user, aktuelleId, router]);
 
   const handleKopieren = useCallback(async (id: string) => {
     if (!user) return;
-    
-    const original = dokumente.find(d => d.id === id);
+    const original = dokumente.find((d) => d.id === id);
     if (!original) return;
 
     const kopie = {
@@ -207,116 +233,253 @@ export default function GottesdienstePage() {
       inhalt: original.inhalt,
       datum: new Date().toISOString(),
       isFavorit: false,
-      typ: 'gottesdienst',
+      typ: 'gottesdienst' as const,
       createdAt: serverTimestamp(),
     };
 
     try {
-      const docRef = doc(collection(db, 'users', user.uid, 'dokumente'));
-      await setDoc(docRef, kopie);
-      
-      const createdDoc = { ...kopie, id: docRef.id, datum: new Date().toISOString() } as Dokument;
-      setDokumente(prev => [createdDoc, ...prev]);
-      
-      // Cache aktualisieren
-      const cacheKey = user.uid;
-      const cached = gottesdienstCache.get(cacheKey);
-      if (cached) {
-        gottesdienstCache.set(cacheKey, {
-          data: [createdDoc, ...cached.data],
-          timestamp: Date.now()
-        });
-      }
+      const docRef = await addDoc(collection(db, 'users', user.uid, 'dokumente'), kopie);
+      handleWähleDokument(docRef.id);
     } catch (error) {
-      console.error('Error copying document:', error);
+      console.error('Fehler beim Kopieren:', error);
     }
-  }, [user, dokumente]);
+  }, [user, dokumente, handleWähleDokument]);
 
   const handleFavorit = useCallback(async (id: string) => {
     if (!user) return;
-    
-    const dokument = dokumente.find(d => d.id === id);
+    const dokument = dokumente.find((d) => d.id === id);
     if (!dokument) return;
 
     const newFavorit = !dokument.isFavorit;
-
-    // Lokales Update sofort
-    setDokumente(prev => prev.map(d => 
-      d.id === id ? { ...d, isFavorit: newFavorit } : d
-    ));
+    setDokumente((prev) => prev.map((d) => (d.id === id ? { ...d, isFavorit: newFavorit } : d)));
 
     try {
-      const docRef = doc(db, 'users', user.uid, 'dokumente', id);
-      await updateDoc(docRef, { isFavorit: newFavorit });
-      
-      // Cache aktualisieren
-      const cacheKey = user.uid;
-      const cached = gottesdienstCache.get(cacheKey);
-      if (cached) {
-        gottesdienstCache.set(cacheKey, {
-          data: cached.data.map(d => d.id === id ? { ...d, isFavorit: newFavorit } : d),
-          timestamp: Date.now()
-        });
-      }
+      await updateDoc(doc(db, 'users', user.uid, 'dokumente', id), { isFavorit: newFavorit });
     } catch (error) {
-      console.error('Error updating favorite:', error);
-      // Rollback bei Fehler
-      setDokumente(prev => prev.map(d => 
-        d.id === id ? { ...d, isFavorit: !newFavorit } : d
-      ));
+      console.error('Fehler beim Favorit:', error);
+      // Rollback UI on error
+      setDokumente((prev) => prev.map((d) => (d.id === id ? { ...d, isFavorit: !newFavorit } : d)));
     }
   }, [user, dokumente]);
 
+  // ── Vorlage laden ─────────────────────────────────────────────────────────
+
+  const handleVorlageWählen = useCallback((inhalt: OutputData) => {
+    if (!aktuelleId) return;
+    handleUpdateInhalt(inhalt);
+  }, [aktuelleId, handleUpdateInhalt]);
+
+  // ── Derived State & Memoization ───────────────────────────────────────────
+
+  const aktuellesDoc = useMemo(() => dokumente.find((d) => d.id === aktuelleId), [dokumente, aktuelleId]);
+
+  const saveLabel = useMemo(() => {
+    switch (saveStatus) {
+      case 'pending':  return { text: '● Nicht gespeichert', color: '#e67e22' };
+      case 'saving':   return { text: '⟳ Wird gespeichert…', color: '#3498db' };
+      case 'saved':    return { text: '✓ Gespeichert', color: '#27ae60' };
+      case 'error':    return { text: '✗ Fehler beim Speichern', color: '#e74c3c' };
+      default:         return null;
+    }
+  }, [saveStatus]);
+  
+  // ── Render ────────────────────────────────────────────────────────────────
+
   if (loading || !user) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Lade...</div>;
+    return <div style={styles.centered}><div style={styles.spinner} /><p>Wird geladen…</p></div>;
   }
 
   if (isLoading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Lade Gottesdienste...</div>;
+    return <div style={styles.centered}><div style={styles.spinner} /><p>Lade Gottesdienste…</p></div>;
   }
 
   return (
-    <div style={{ display: 'flex', flex: 1, overflow: 'hidden', height: '100%' }}>
+    <div style={styles.pageWrapper}>
       <Sidebar
         dokumente={dokumente}
         aktuelleId={aktuelleId}
-        onWähleDokument={setAktuelleId}
+        onWähleDokument={handleWähleDokument}
         onNeuGottesdienst={erstelleNeuenGottesdienst}
-        onNeuNotiz={() => {}} // No-op
+        onNeuNotiz={() => router.push('/notizen')}
         onLöschen={handleLöschen}
         onKopieren={handleKopieren}
         onFavorit={handleFavorit}
-        docType='gottesdienst'
+        docType="gottesdienst"
       />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {aktuelleId && aktuellesDoc ? (
-           <div style={{ padding: '20px', overflowY: 'auto' }}>
-           <input 
-             type="text" 
-             value={aktuellesDoc.titel} 
-             onChange={(e) => handleUpdate('titel', e.target.value)} 
-             style={{ 
-               width: '100%', 
-               fontSize: '2rem', 
-               fontWeight: 'bold', 
-               border: 'none', 
-               outline: 'none',
-               marginBottom: '20px'
-             }}
-           />
-           <Editor
-             documentId={aktuelleId}
-             value={aktuellesDoc.inhalt}
-             onChange={(v) => handleUpdate('inhalt', v)}
-           />
-         </div>
+
+      <div style={styles.editorWrapper}>
+        {aktuellesDoc ? (
+          <>
+            <div style={styles.toolbar}>
+              <VorlagenMenu onVorlageWählen={handleVorlageWählen} />
+              <div style={styles.toolbarRight}>
+                {saveLabel && <span style={{ ...styles.saveStatus, color: saveLabel.color }}>{saveLabel.text}</span>}
+                <button
+                  onClick={() => {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    saveNow();
+                  }}
+                  disabled={saveStatus !== 'pending' && saveStatus !== 'error'}
+                  style={{
+                    ...styles.saveButton,
+                    ...(saveStatus !== 'pending' && saveStatus !== 'error' ? styles.saveButtonDisabled : {}),
+                  }}
+                  title="Speichern (Strg+S)"
+                >
+                  💾 Speichern
+                </button>
+              </div>
+            </div>
+
+            <div style={styles.editorArea}>
+              <input
+                type="text"
+                value={aktuellesDoc.titel}
+                onChange={(e) => handleUpdateTitel(e.target.value)}
+                placeholder="Titel eingeben…"
+                style={styles.titelInput}
+              />
+              <Editor
+                documentId={aktuelleId!}
+                value={aktuellesDoc.inhalt}
+                onChange={handleUpdateInhalt}
+              />
+            </div>
+          </>
         ) : (
-          <div style={{textAlign: 'center', padding: '50px', color: '#7f8c8d'}}>
-            <h2>Gottesdienst auswählen</h2>
-            <p>Bitte wählen Sie einen Gottesdienst aus der Liste oder erstellen Sie einen neuen.</p>
+          <div style={styles.emptyState}>
+            <div style={styles.emptyIcon}>⛪</div>
+            <h2 style={styles.emptyTitle}>Gottesdienst auswählen</h2>
+            <p style={styles.emptyText}>
+              Wählen Sie einen Gottesdienst aus der Liste oder erstellen Sie einen neuen.
+            </p>
+            <button onClick={erstelleNeuenGottesdienst} style={styles.newButton}>
+              + Neuen Gottesdienst erstellen
+            </button>
           </div>
         )}
       </div>
     </div>
   );
 }
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const styles: { [key: string]: React.CSSProperties } = {
+  pageWrapper: {
+    display: 'flex',
+    flex: 1,
+    overflow: 'hidden',
+    height: '100%',
+  },
+  centered: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    gap: '16px',
+    color: '#7f8c8d',
+  },
+  spinner: {
+    width: '40px',
+    height: '40px',
+    border: '4px solid #f3f3f3',
+    borderTop: '4px solid #2c3e50',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  editorWrapper: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+  },
+  toolbar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '10px 20px',
+    borderBottom: '1px solid #dee2e6',
+    backgroundColor: '#f8f9fa',
+    flexShrink: 0,
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  toolbarRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  saveStatus: {
+    fontSize: '0.85rem',
+    fontWeight: 500,
+    transition: 'color 0.3s ease',
+  },
+  saveButton: {
+    padding: '7px 16px',
+    backgroundColor: '#2c3e50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    transition: 'background-color 0.2s ease',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#bdc3c7',
+    cursor: 'default',
+  },
+  editorArea: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '30px 40px',
+  },
+  titelInput: {
+    width: '100%',
+    fontSize: '2rem',
+    fontWeight: 'bold',
+    border: 'none',
+    outline: 'none',
+    marginBottom: '24px',
+    color: '#2c3e50',
+    fontFamily: 'Georgia, serif',
+    backgroundColor: 'transparent',
+  },
+  emptyState: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+    padding: '40px',
+    color: '#7f8c8d',
+  },
+  emptyIcon: {
+    fontSize: '4rem',
+    marginBottom: '16px',
+  },
+  emptyTitle: {
+    fontSize: '1.5rem',
+    color: '#2c3e50',
+    marginBottom: '10px',
+  },
+  emptyText: {
+    fontSize: '1rem',
+    marginBottom: '24px',
+    maxWidth: '400px',
+  },
+  newButton: {
+    padding: '12px 24px',
+    backgroundColor: '#2c3e50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    fontWeight: 600,
+  },
+};
