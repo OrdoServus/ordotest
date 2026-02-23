@@ -1,6 +1,8 @@
 'use client';
 import React, { useEffect, useRef, useCallback } from 'react';
 import EditorJS, { OutputData } from '@editorjs/editorjs';
+
+// Tools importieren
 // @ts-ignore
 import Header from '@editorjs/header';
 // @ts-ignore
@@ -11,15 +13,14 @@ import Quote from '@editorjs/quote';
 import Delimiter from '@editorjs/delimiter';
 // @ts-ignore
 import Table from '@editorjs/table';
+// @ts-ignore
+import Marker from '@editorjs/marker'; // NEU: Leuchtstift importieren
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface EditorProps {
-  /** Editor.js OutputData object from Firestore */
   value: OutputData;
-  /** Called with OutputData when the user types */
   onChange: (data: OutputData) => void;
-  /** ID of the current document */
   documentId?: string;
 }
 
@@ -30,94 +31,66 @@ const EMPTY_DATA: OutputData = { blocks: [] };
 // ─── Komponente ───────────────────────────────────────────────────────────────
 
 const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
-  const holderRef    = useRef<HTMLDivElement>(null);
-  const editorRef    = useRef<EditorJS | null>(null);
-  const currentDocId = useRef<string | undefined>(undefined);
-  const isSilent     = useRef(false);
-  const lastExtValue = useRef<OutputData>(value);
+  const holderRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<EditorJS | null>(null);
 
-  // ── Editor initialisieren ─────────────────────────────────────────────────
+  // Ref, um den externen Wert zu verfolgen und unnötige Updates zu vermeiden
+  const externalValueRef = useRef(value);
 
-  const initEditor = useCallback(async (data: OutputData) => {
+  // ── Editor initialisieren und zerstören ───────────────────────────────────
+
+  useEffect(() => {
     if (!holderRef.current) return;
-
-    if (editorRef.current) {
-      try {
-        await editorRef.current.isReady;
-        editorRef.current.destroy();
-      } catch { /* ignorieren */ }
-      editorRef.current = null;
-    }
-
-    isSilent.current = true;
 
     const editor = new EditorJS({
       holder: holderRef.current,
-      placeholder: 'Schreiben Sie hier oder wählen Sie eine Vorlage…',
+      placeholder: 'Schreibe hier oder wähle eine Vorlage…',
+      
+      // Tools konfigurieren
       tools: {
         header: { class: Header, config: { levels: [1, 2, 3, 4], defaultLevel: 2 }, inlineToolbar: true },
         list:      { class: List,      inlineToolbar: true },
         quote:     { class: Quote,     inlineToolbar: true },
         delimiter: Delimiter,
         table:     { class: Table,     inlineToolbar: true },
+        marker:    { class: Marker,    shortcut: 'CMD+SHIFT+M' }, // NEU: Leuchtstift hinzufügen
       },
-      data: data,
+
+      data: value && value.blocks && value.blocks.length > 0 ? value : EMPTY_DATA,
+
       onChange: async (api) => {
-        if (isSilent.current) return;
-        try {
-          const savedData = await api.saver.save();
-          lastExtValue.current = savedData;
-          onChange(savedData);
-        } catch { /* ignorieren */ }
+        const savedData = await api.saver.save();
+        // Aktualisiere den externen Wert, um die Referenz synchron zu halten
+        externalValueRef.current = savedData;
+        onChange(savedData);
       },
     });
 
     editorRef.current = editor;
 
-    try {
-      await editor.isReady;
-    } finally {
-      isSilent.current = false;
-    }
-  }, [onChange]);
-
-  // ── Mount & Dokument-Wechsel ──────────────────────────────────────────────
-
-  useEffect(() => {
-    const dataToLoad = value && value.blocks?.length > 0 ? value : EMPTY_DATA;
-    initEditor(dataToLoad);
-    currentDocId.current = documentId;
-    lastExtValue.current = dataToLoad;
-  }, [documentId, initEditor]); // Re-init on document change
-
-  // ── Extern geänderter Wert (z.B. Vorlage) ──────────────────────────────────
-
-  useEffect(() => {
-    if (value === lastExtValue.current || documentId !== currentDocId.current) return;
-    
-    lastExtValue.current = value;
-    if (!editorRef.current?.isReady) return;
-
-    editorRef.current.isReady
-      .then(() => {
-        isSilent.current = true;
-        return editorRef.current!.render(value && value.blocks?.length ? value : EMPTY_DATA);
-      })
-      .then(() => { isSilent.current = false; })
-      .catch(() => { isSilent.current = false; });
-
-  }, [value, documentId]);
-
-  // ── Cleanup ─────────────────────────────────────────────────────────────────
-  
-  useEffect(() => {
+    // Cleanup-Funktion
     return () => {
       if (editorRef.current && typeof editorRef.current.destroy === 'function') {
-        try { editorRef.current.destroy(); } catch {}
+        editorRef.current.destroy();
+        editorRef.current = null;
       }
-      editorRef.current = null;
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentId]); // Editor nur bei Dokumenten-Wechsel neu initialisieren
+
+
+  // ── Externen Wert aktualisieren (z.B. durch Vorlagen) ────────────────────
+
+  useEffect(() => {
+    // Nur aktualisieren, wenn sich der Wert wirklich geändert hat
+    if (editorRef.current && value !== externalValueRef.current) {
+        // Vergleiche den Inhalt, nicht nur die Referenz
+        if (JSON.stringify(value) !== JSON.stringify(externalValueRef.current)) {
+            editorRef.current.render(value);
+            externalValueRef.current = value;
+        }
+    }
+  }, [value]);
 
   return (
     <>
@@ -131,6 +104,7 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 
 const editorStyles = `
+  /* ... Stile bleiben unverändert ... */
   .ce-block__content {
     max-width: 680px;
     font-family: 'Georgia', serif;
@@ -204,6 +178,16 @@ const editorStyles = `
     font-size: 0.9rem;
   }
   .codex-editor { border: none; }
+  /* CSS für Leuchtstift */
+  .ce-toolbar__content .ce-inline-tool[data-tool="marker"],
+  .ce-inline-toolbar .ce-inline-tool[data-tool="marker"] {
+      width: 34px;
+      height: 34px;
+  }
+  mark.cdx-marker {
+      background-color: rgba(245, 235, 111, 0.29);
+      padding: 3px 0;
+  }
   @media print {
     .ce-toolbar { display: none !important; }
     .ce-block__content { max-width: 100% !important; }

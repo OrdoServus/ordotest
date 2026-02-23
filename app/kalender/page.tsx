@@ -368,6 +368,19 @@ export default function KalenderPage() {
         {/* ── Sidebar ── */}
         {sidebarOpen && (
           <aside style={s.sidebar}>
+            <div style={s.sideSection}>
+              <FullCalendar
+                plugins={[dayGridPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                locale="de"
+                headerToolbar={false}
+                height="auto"
+                dateClick={(arg) => {
+                  calendarRef.current?.getApi().gotoDate(arg.date);
+                  changeView('dayGridDay');
+                }}
+              />
+            </div>
             {/* Mini upcoming */}
             <div style={s.sideSection}>
               <h3 style={s.sideSectionTitle}>Nächste Termine</h3>
@@ -395,60 +408,6 @@ export default function KalenderPage() {
                   </div>
                 );
               })}
-            </div>
-
-            {/* Stats */}
-            <div style={s.sideSection}>
-              <h3 style={s.sideSectionTitle}>Übersicht</h3>
-              <div style={s.statsGrid}>
-                <div style={s.statBox}>
-                  <div style={s.statNum}>{events.length}</div>
-                  <div style={s.statLabel}>Gesamt</div>
-                </div>
-                <div style={s.statBox}>
-                  <div style={s.statNum}>{upcomingEvents.length}</div>
-                  <div style={s.statLabel}>Demnächst</div>
-                </div>
-              </div>
-              <div style={{ marginTop: '12px' }}>
-                {eventCountByCategory.filter((c) => c.count > 0).map((cat) => (
-                  <div key={cat.value} style={s.categoryBar}>
-                    <span style={s.catBarIcon}>{cat.icon}</span>
-                    <span style={s.catBarLabel}>{cat.label}</span>
-                    <div style={s.catBarTrack}>
-                      <div
-                        style={{
-                          ...s.catBarFill,
-                          width: `${(cat.count / events.length) * 100}%`,
-                          backgroundColor: cat.color,
-                        }}
-                      />
-                    </div>
-                    <span style={s.catBarCount}>{cat.count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick Create */}
-            <div style={s.sideSection}>
-              <h3 style={s.sideSectionTitle}>Schnell erstellen</h3>
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.value}
-                  style={{ ...s.quickBtn, borderColor: cat.color + '55' }}
-                  onClick={() => {
-                    setFormData({ ...EMPTY_FORM, start: today(), end: today(), category: cat.value, color: cat.color });
-                    setEditingId(null);
-                    setModalMode('create');
-                    setError(null);
-                    setIsModalOpen(true);
-                  }}
-                >
-                  <span>{cat.icon}</span>
-                  <span style={{ color: cat.color }}>{cat.label}</span>
-                </button>
-              ))}
             </div>
           </aside>
         )}

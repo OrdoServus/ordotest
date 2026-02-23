@@ -170,8 +170,6 @@ export default function GottesdienstePage() {
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (pendingTitelRef.current !== null || pendingInhaltRef.current !== null) {
-        // Zwar wird `saveNow` asynchron aufgerufen, aber der Browser
-        // blockiert normalerweise lange genug, damit die Anfrage gesendet wird.
         saveNow();
         e.preventDefault();
         e.returnValue = '';
@@ -209,7 +207,7 @@ export default function GottesdienstePage() {
   }, [user, handleWähleDokument]);
 
   const handleLöschen = useCallback(async (id: string) => {
-    if (!user || !confirm('Möchten Sie diesen Gottesdienst wirklich endgültig löschen?')) return;
+    if (!user || !confirm('Möchtest du diesen Gottesdienst wirklich endgültig löschen?')) return;
 
     try {
       await deleteDoc(doc(db, 'users', user.uid, 'dokumente', id));
@@ -264,10 +262,28 @@ export default function GottesdienstePage() {
 
   // ── Vorlage laden ─────────────────────────────────────────────────────────
 
-  const handleVorlageWählen = useCallback((inhalt: OutputData) => {
+  const handleVorlageWählen = useCallback((neuerInhalt: OutputData) => {
     if (!aktuelleId) return;
-    handleUpdateInhalt(inhalt);
-  }, [aktuelleId, handleUpdateInhalt]);
+
+    // 1. UI sofort aktualisieren
+    setDokumente((prev) => 
+      prev.map((d) => 
+        d.id === aktuelleId ? { ...d, inhalt: neuerInhalt } : d
+      )
+    );
+
+    // 2. Änderung für das Speichern vormerken
+    pendingInhaltRef.current = neuerInhalt;
+
+    // 3. Bestehenden Auto-Save-Timer abbrechen
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    // 4. Sofort speichern
+    saveNow();
+
+  }, [aktuelleId, saveNow]);
 
   // ── Derived State & Memoization ───────────────────────────────────────────
 
@@ -290,7 +306,7 @@ export default function GottesdienstePage() {
   }
 
   if (isLoading) {
-    return <div style={styles.centered}><div style={styles.spinner} /><p>Lade Gottesdienste…</p></div>;
+    return <div style={styles.centered}><div style={styles.spinner} /><p>Lade deine Gottesdienste…</p></div>;
   }
 
   return (
@@ -349,9 +365,9 @@ export default function GottesdienstePage() {
         ) : (
           <div style={styles.emptyState}>
             <div style={styles.emptyIcon}>⛪</div>
-            <h2 style={styles.emptyTitle}>Gottesdienst auswählen</h2>
+            <h2 style={styles.emptyTitle}>Wähle einen Gottesdienst</h2>
             <p style={styles.emptyText}>
-              Wählen Sie einen Gottesdienst aus der Liste oder erstellen Sie einen neuen.
+              Wähle einen Gottesdienst aus der Liste oder erstelle einen neuen.
             </p>
             <button onClick={erstelleNeuenGottesdienst} style={styles.newButton}>
               + Neuen Gottesdienst erstellen
