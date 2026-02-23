@@ -37,7 +37,7 @@ export default function Dashboard({ dokumente, onNeuGottesdienst, onNeuNotiz }: 
             <h1 style={{ fontSize: '2.5rem', color: '#2c3e50', marginBottom: '10px' }}>
                 {userProfile?.firstName ? `Willkommen, ${userProfile.firstName}` : 'Willkommen bei OrdoServus'}
             </h1>
-            <p style={{ color: '#7f8c8d', fontSize: '1.2rem' }}>Was möchten Sie heute tun?</p>
+            <p style={{ color: '#7f8c8d', fontSize: '1.2rem' }}>Was willst Du heute tun?</p>
             </div>
         </header>
 
@@ -54,7 +54,7 @@ export default function Dashboard({ dokumente, onNeuGottesdienst, onNeuNotiz }: 
             <div onClick={onNeuGottesdienst} style={{...cardStyle, borderTop: '8px solid #2c3e50'}}>
             <div style={{ fontSize: '3rem', marginBottom: '15px' }}>⛪</div>
             <h2 style={{ color: '#2c3e50' }}>Gottesdienst-Planer</h2>
-            <p style={pStyle}>Erstellen Sie Abläufe, Predigten und liturgische Texte mit Vorlagen.</p>
+            <p style={pStyle}>Erstelle Abläufe, Predigten und liturgische Texte mit Vorlagen.</p>
             <span style={badgeStyle}>{liturgienCount} Entwürfe</span>
             <button onClick={(e) => { e.stopPropagation(); onNeuGottesdienst(); }} style={btnStyle('#2c3e50')}>
                 + Neu erstellen
@@ -64,7 +64,7 @@ export default function Dashboard({ dokumente, onNeuGottesdienst, onNeuNotiz }: 
             <div onClick={onNeuNotiz} style={{...cardStyle, borderTop: '8px solid #80397B'}}>
             <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📓</div>
             <h2 style={{ color: '#80397B' }}>Digitales Notizbuch</h2>
-            <p style={pStyle}>Organisieren Sie Gedanken, Katechese und Verwaltungsnotizen im OneNote-Stil.</p>
+            <p style={pStyle}>Organisiere Gedanken, Katechese und Verwaltungsnotizen im Notizbuch.</p>
             <span style={badgeStyle}>{notizenCount} Seiten</span>
             <button onClick={(e) => { e.stopPropagation(); onNeuNotiz(); }} style={btnStyle('#80397B')}>
                 + Neue Notiz

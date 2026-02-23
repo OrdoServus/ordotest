@@ -29,16 +29,16 @@ export default function DownloadsPage() {
 
       <main style={styles.main}>
         <header style={styles.header}>
-          <h1 style={styles.pageTitle}>OrdoServus herunterladen</h1>
+          <h1 style={styles.pageTitle}>Lade OrdoServus herunter</h1>
           <p style={styles.subtitle}>
-            Greifen Sie auf OrdoServus über unsere Web-App zu. Apps für Desktop und Mobile sind in Vorbereitung.
+            Greife auf OrdoServus über unsere Web-App zu. Apps für Desktop und Mobilgeräte sind in Vorbereitung.
           </p>
         </header>
 
         {/* Web App Section */}
         <div style={styles.webAppCard}>
           <h2>Web-App</h2>
-          <p>Nutzen Sie die volle Funktionalität von OrdoServus direkt im Browser. Keine Installation notwendig.</p>
+          <p>Nutze die volle Funktionalität von OrdoServus direkt im Browser. Keine Installation notwendig.</p>
           <Link href="/" style={styles.launchButton}>
             Web-App starten
           </Link>
@@ -58,7 +58,7 @@ export default function DownloadsPage() {
 
           {/* Mobile */}
           <div style={styles.category}>
-            <h2 style={styles.categoryTitle}>Mobile</h2>
+            <h2 style={styles.categoryTitle}>Mobil</h2>
             <div style={styles.optionsContainer}>
               <DownloadOption title="iOS" comingSoon />
               <DownloadOption title="Android" comingSoon />

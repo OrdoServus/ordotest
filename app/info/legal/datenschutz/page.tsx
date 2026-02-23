@@ -4,7 +4,6 @@ import Link from 'next/link';
 import Footer from '../../Footer';
 
 export default function DatenschutzPage() {
-  const currentYear = new Date().getFullYear();
 
   return (
     <div style={styles.page}>
@@ -20,38 +19,35 @@ export default function DatenschutzPage() {
                 <div style={styles.section}>
                     <h2 style={styles.h2}>1. Verantwortliche Stelle</h2>
                     <p>
-                        OrdoServus ist ein privates Open-Source-Projekt. Da es keine zentrale, kommerzielle Organisation gibt, 
-                        liegt die Verantwortung für den Datenschutz bei der Person oder Gemeinschaft, die diese Software auf 
-                        einem eigenen Server betreibt.
+                        OrdoServus ist ein privates Open-Source-Projekt. Die Verantwortung für den Datenschutz liegt bei dir, 
+                        wenn du diese Software auf einem eigenen Server betreibst.
                     </p>
                 </div>
 
                 <div style={styles.section}>
-                    <h2 style={styles.h2}>2. Allgemeines zur Datenbearbeitung</h2>
+                    <h2 style={styles.h2}>2. Allgemeines zur Datenverarbeitung</h2>
                     <p>
-                        Wir bearbeiten personenbezogene Daten im Einklang mit dem Schweizer
-                        Datenschutzgesetz (revDSG). Die Nutzung unserer kostenlosen Web‑Software
-                        ist grundsätzlich ohne Angabe personenbezogener Daten möglich. 
-                        Soweit Daten erhoben werden, erfolgt dies nur im technisch notwendigen 
-                        Umfang oder aufgrund Ihrer freiwilligen Angaben.
+                        Deine personenbezogenen Daten werden im Einklang mit dem Schweizer Datenschutzgesetz (revDSG) verarbeitet.
+                        Du kannst die Web-Software grundsätzlich ohne Angabe personenbezogener Daten nutzen. 
+                        Wenn Daten erhoben werden, erfolgt dies nur im technisch notwendigen Umfang oder aufgrund deiner freiwilligen Angaben.
                     </p>
                 </div>
 
                 <div style={styles.section}>
-                  <h2 style={styles.h2}>3. Erhebung und Zweck der Datenbearbeitung</h2>
-                  <p>Wir bearbeiten personenbezogene Daten insbesondere für folgende Zwecke:</p>
+                  <h2 style={styles.h2}>3. Erhebung und Zweck der Datenverarbeitung</h2>
+                  <p>Personenbezogene Daten werden insbesondere für folgende Zwecke verarbeitet:</p>
                   <ul style={styles.ul}>
-                    <li>Bereitstellung und Betrieb der Web‑Software</li>
-                    <li>Kommunikation mit Nutzerinnen und Nutzern bei optionaler Account-Erstellung</li>
-                    <li>Sicherstellung der Systemsicherheit und ‑stabilität</li>
+                    <li>Bereitstellung und Betrieb der Web-Software</li>
+                    <li>Kommunikation mit dir bei optionaler Account-Erstellung</li>
+                    <li>Sicherstellung der Systemsicherheit und -stabilität</li>
                   </ul>
                 </div>
 
                 <div style={styles.section}>
-                    <h2 style={styles.h2}>4. Server‑Log‑Daten</h2>
+                    <h2 style={styles.h2}>4. Server-Log-Daten</h2>
                     <p>
-                        Beim Zugriff auf unsere Web‑Software werden automatisch technische Daten 
-                        erfasst, darunter IP‑Adresse, Datum und Uhrzeit, Browsertyp und Betriebssystem. 
+                        Beim Zugriff auf die Web-Software werden automatisch technische Daten 
+                        erfasst, darunter deine IP-Adresse, Datum und Uhrzeit, Browsertyp und Betriebssystem. 
                         Diese Daten dienen der Sicherstellung des technischen Betriebs.
                     </p>
                 </div>
@@ -59,8 +55,8 @@ export default function DatenschutzPage() {
                 <div style={styles.section}>
                     <h2 style={styles.h2}>5. Cookies und Lokaler Speicher</h2>
                     <p>
-                        Unsere Web‑Software verwendet den lokalen Speicher (Local Storage) Ihres Browsers, 
-                        um Ihre Dokumente und Einstellungen direkt auf Ihrem Gerät zu sichern. 
+                        Die Web-Software verwendet den lokalen Speicher (Local Storage) deines Browsers, 
+                        um deine Dokumente und Einstellungen direkt auf deinem Gerät zu sichern. 
                         Es werden nur technisch notwendige Cookies für die Login-Funktion (Supabase) verwendet.
                     </p>
                 </div>
@@ -68,28 +64,28 @@ export default function DatenschutzPage() {
                 <div style={styles.section}>
                     <h2 style={styles.h2}>6. Weitergabe von Daten</h2>
                     <p>
-                        Eine Weitergabe personenbezogener Daten findet nicht statt. 
-                        Wenn Sie die Cloud-Funktion nutzen, werden Ihre Daten verschlüsselt an 
+                        Eine Weitergabe deiner personenbezogenen Daten findet nicht statt. 
+                        Wenn du die Cloud-Funktion nutzt, werden deine Daten verschlüsselt an 
                         Supabase übertragen, aber nicht an Dritte weitergegeben.
                     </p>
                 </div>
 
                 <div style={styles.section}>
-                    <h2 style={styles.h2}>7. Ihre Rechte</h2>
-                    <p>Sie haben im Rahmen des revDSG insbesondere folgende Rechte:</p>
+                    <h2 style={styles.h2}>7. Deine Rechte</h2>
+                    <p>Du hast im Rahmen des revDSG insbesondere folgende Rechte:</p>
                     <ul style={styles.ul}>
-                        <li>Auskunft über die bearbeiteten personenbezogenen Daten</li>
+                        <li>Auskunft über die verarbeiteten personenbezogenen Daten</li>
                         <li>Berichtigung unrichtiger Daten</li>
-                        <li>Löschung Ihrer Daten (bei Nutzung der Cloud-Funktion in den Einstellungen möglich)</li>
-                        <li>Widerspruch gegen bestimmte Datenbearbeitungen</li>
+                        <li>Löschung deiner Daten (bei Nutzung der Cloud-Funktion in den Einstellungen möglich)</li>
+                        <li>Widerspruch gegen bestimmte Datenverarbeitungen</li>
                     </ul>
                 </div>
 
                 <div style={styles.section}>
                     <h2 style={styles.h2}>8. Änderungen dieser Datenschutzerklärung</h2>
                     <p>
-                        Wir behalten uns vor, diese Datenschutzerklärung jederzeit anzupassen. 
-                        Es gilt die jeweils aktuelle Version, die in der Web‑Software abrufbar ist. <br/>
+                        Diese Datenschutzerklärung kann jederzeit angepasst werden. 
+                        Es gilt die jeweils aktuelle Version, die in der Web-Software abrufbar ist. <br/>
                         Letzte Aktualisierung: {new Date().toLocaleDateString('de-DE')}
                     </p>
                 </div>

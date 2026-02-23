@@ -12,43 +12,42 @@ export default function InfoPage() {
         <Link href="/" style={{ textDecoration: 'none', color: '#2c3e50' }}>
           <div style={{ fontWeight: 'bold', fontSize: '1.5rem' }}>OrdoServus</div>
         </Link>
-        {/* Nav links can be hidden on mobile or handled with a menu button */}
       </nav>
 
       {/* Hero Bereich */}
       <header style={heroStyle}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '20px' }}>Digitaler Dienst am Altar & Schreibtisch</h1>
+        <h1 style={{ fontSize: '2.5rem', marginBottom: '20px' }}>Dein digitaler Dienst am Altar & Schreibtisch</h1>
         <p style={{ fontSize: '1.2rem', maxWidth: '800px', margin: '0 auto 30px' }}>
-          OrdoServus unterstützt Pfarrer, Diakone und liturgische Dienste bei der Vorbereitung 
-          von Gottesdiensten und der Organisation pastoraler Gedanken.
+          OrdoServus unterstützt dich als Pfarrer, Diakon oder liturgischen Dienst bei der Vorbereitung 
+          deiner Gottesdienste und der Organisation deiner pastoralen Gedanken.
         </p>
         <Link href="/login">
-          <button style={ctaButtonStyle}>Jetzt Kostenlos Starten</button>
+          <button style={ctaButtonStyle}>Jetzt kostenlos starten</button>
         </Link>
       </header>
 
       {/* Navigation Cards */}
       <section style={cardsSectionStyle}>
-          <Link href="/info/downloads" style={cardLinkStyle}><div style={cardStyle}><h3>Downloads</h3><p>Apps für alle Geräte.</p></div></Link>
+          <Link href="/info/downloads" style={cardLinkStyle}><div style={cardStyle}><h3>Downloads</h3><p>Apps für all deine Geräte.</p></div></Link>
           <a href="https://github.com/ordoservus/ordoservus/wiki" target="_blank" rel="noopener noreferrer" style={cardLinkStyle}><div style={cardStyle}><h3>Hilfe</h3><p>Anleitungen und FAQs.</p></div></a>
-          <Link href="/info/kontakt" style={cardLinkStyle}><div style={cardStyle}><h3>Kontakt</h3><p>Schreiben Sie uns.</p></div></Link>
+          <Link href="/info/kontakt" style={cardLinkStyle}><div style={cardStyle}><h3>Kontakt</h3><p>Schreib uns.</p></div></Link>
       </section>
 
       {/* Features Sektion */}
       <section id="features" style={{ padding: '60px 20px', backgroundColor: '#fff' }}>
-        <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '40px' }}>Entwickelt für die Seelsorge</h2>
+        <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '40px' }}>Entwickelt für deine Seelsorge</h2>
         <div style={featureGrid}>
           <div style={featureCard}>
             <h3>⛪ Liturgische Vorlagen</h3>
-            <p>Strukturierte Abläufe für Messen, Andachten und Taufen. Kein "leeres Blatt" mehr bei der Vorbereitung.</p>
+            <p>Strukturierte Abläufe für Messen, Andachten und Taufen. Kein "leeres Blatt" mehr bei deiner Vorbereitung.</p>
           </div>
           <div style={featureCard}>
             <h3>📓 Flexibles Notizbuch</h3>
-            <p>Einfache Organisation wie in OneNote. Perfekt für Katechese, Predigtideen und Gremienarbeit.</p>
+            <p>Einfache Organisation wie in OneNote. Perfekt für deine Katechese, Predigtideen und Gremienarbeit.</p>
           </div>
           <div style={featureCard}>
             <h3>🔒 Privat & Lokal</h3>
-            <p>Ihre Daten gehören Ihnen. OrdoServus speichert alles lokal in Ihrem Browser – ohne Cloud-Zwang.</p>
+            <p>Deine Daten gehören dir. OrdoServus speichert alles lokal in deinem Browser – ohne Cloud-Zwang.</p>
           </div>
         </div>
       </section>
@@ -58,13 +57,11 @@ export default function InfoPage() {
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '10px' }}>Die Vision</h2>
           <p>
-            OrdoServus entstand aus der Idee, moderne Webtechnologie mit den Anforderungen 
-            des kirchlichen Alltags zu verbinden. Es ist ein Open-Source-Projekt, das 
-            einfach, schnell und unabhängig funktionieren soll. Wir glauben daran, dass 
-            Technologie die Seelsorge unterstützen kann, ohne Kompromisse bei Datenschutz 
-            und Benutzerfreundlichkeit einzugehen. Dieses Produkt ist für alle, die ihren 
-            Dienst am Altar und im pastoralen Alltag bestmöglich gestalten möchten und steht Ihnen 
-            kostenlos zur Verfügung.
+            OrdoServus entstand aus unserer Idee, moderne Webtechnologie mit den Anforderungen deines kirchlichen Alltags zu verbinden. 
+            Es ist ein Open-Source-Projekt, das einfach, schnell und unabhängig funktionieren soll. Wir glauben daran, dass 
+            Technologie deine Seelsorge unterstützen kann, ohne Kompromisse bei Datenschutz und Benutzerfreundlichkeit einzugehen. 
+            Dieses Produkt haben wir für dich entwickelt, damit du deinen Dienst am Altar und im pastoralen Alltag bestmöglich 
+            gestalten kannst. Es steht dir kostenlos zur Verfügung.
           </p>
         </div>
       </section>

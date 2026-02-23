@@ -14,18 +14,18 @@ export default function KontaktPage() {
       <div style={containerStyle}>
         <header style={{ textAlign: 'center', marginBottom: '40px' }}>
           <h1 style={{ fontSize: '2.5rem', color: '#2c3e50' }}>Kontakt & Support</h1>
-          <p style={{ color: '#666' }}>Haben Sie Fragen, Anregungen oder benötigen Sie technische Hilfe?</p>
+          <p style={{ color: '#666' }}>Hast du Fragen, Anregungen oder brauchst du technische Hilfe?</p>
         </header>
 
         <div style={contactGrid}>
           {/* Contact Form */}
           <div style={formCardStyle}>
-            <h3>Schreiben Sie uns direkt</h3>
-            <p>Wir freuen uns auf Ihre Nachricht und melden uns schnellstmöglich bei Ihnen.</p>
+            <h3>Schreib uns direkt</h3>
+            <p>Wir freuen uns auf deine Nachricht und melden uns schnellstmöglich bei dir.</p>
             <form action="https://formspree.io/f/xwvlynzn" method="POST" style={{ marginTop: '20px' }}>
-              <input type="text" name="name" placeholder="Ihr Name" required style={inputStyle} />
-              <input type="email" name="email" placeholder="Ihre E-Mail-Adresse" required style={inputStyle} />
-              <textarea name="message" placeholder="Ihre Nachricht..." required style={textareaStyle}></textarea>
+              <input type="text" name="name" placeholder="Dein Name" required style={inputStyle} />
+              <input type="email" name="email" placeholder="Deine E-Mail-Adresse" required style={inputStyle} />
+              <textarea name="message" placeholder="Deine Nachricht..." required style={textareaStyle}></textarea>
               <button type="submit" style={submitButtonStyle}>
                 Nachricht senden
               </button>
@@ -37,7 +37,7 @@ export default function KontaktPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={sideCardStyle}>
               <h4>🚀 Technischer Support & Hilfe</h4>
-              <p>Fehler, Wünsche und Antworten auf Ihre Fragen finden Sie auf GitHub.</p>
+              <p>Fehler, Wünsche und Antworten auf deine Fragen findest du auf GitHub.</p>
               <a href="https://github.com/ordoservus/ordoservus/issues" target="_blank" style={buttonStyle('#2c3e50')}>
                 GitHub Issues
               </a>

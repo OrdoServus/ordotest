@@ -19,11 +19,11 @@ export default function ImpressumPage() {
                     <h2 style={styles.h2}>Verantwortung</h2>
                     <p>
                         OrdoServus ist ein nicht-kommerzielles Open-Source-Projekt.
-                        Die Verantwortung für auf einem Server betriebene Instanzen liegt bei der jeweiligen Person oder Organisation, die den Server administriert.
+                        Die Verantwortung für auf einem Server betriebene Instanzen liegt bei dir, wenn du den Server administrierst.
                     </p>
                      <p style={{ marginTop: 10 }}>
                         Das Projekt wird auf GitHub von einer Gemeinschaft von Freiwilligen entwickelt. 
-                        Fehler, Anregungen oder Beiträge können dort eingereicht werden.
+                        Fehler, Anregungen oder Beiträge kannst du dort einreichen.
                     </p>
                 </div>
 
@@ -46,7 +46,7 @@ export default function ImpressumPage() {
                 <div style={styles.section}>
                     <h2 style={styles.h2}>Datenschutz</h2>
                     <p>
-                        Informationen zur Verarbeitung personenbezogener Daten finden Sie in der{" "}
+                        Informationen zur Verarbeitung deiner personenbezogenen Daten findest du in der{" "}
                         <Link href="/info/legal/datenschutz" style={{ color: '#ef5c22', textDecoration: 'underline' }}>
                             Datenschutzerklärung
                         </Link>.
@@ -56,7 +56,7 @@ export default function ImpressumPage() {
                 <div style={styles.section}>
                     <h2 style={styles.h2}>Kontakt</h2>
                     <p>
-                        Bei Fragen zum Projekt können Sie über GitHub oder die auf der Kontakt-Seite 
+                        Bei Fragen zum Projekt kannst du über GitHub oder die auf der Kontakt-Seite 
                         angegebenen Wege mit den Entwicklern in Verbindung treten.
                     </p>
                 </div>
