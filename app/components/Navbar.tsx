@@ -23,10 +23,6 @@ const Navbar: React.FC = () => {
           </Link>
         </div>
         <div style={styles.navButtons}>
-          <Link href="/gottesdienste" style={getLinkClass('/gottesdienste')}>
-            <Book size={18} style={{ marginRight: '8px' }} />
-            Gottesdienste
-          </Link>
           <Link href="/notizen" style={getLinkClass('/notizen')}>
             <FileText size={18} style={{ marginRight: '8px' }} />
             Notizen

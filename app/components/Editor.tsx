@@ -1,20 +1,20 @@
 'use client';
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import EditorJS, { OutputData } from '@editorjs/editorjs';
 
 // Tools importieren
-// @ts-ignore
+// @ts-expect-error EditorJS plugin package has no proper TS default export typings
 import Header from '@editorjs/header';
-// @ts-ignore
+// @ts-expect-error EditorJS plugin package has no proper TS default export typings
 import List from '@editorjs/list';
-// @ts-ignore
+// @ts-expect-error EditorJS plugin package has no proper TS default export typings
 import Quote from '@editorjs/quote';
-// @ts-ignore
+// @ts-expect-error EditorJS plugin package has no proper TS default export typings
 import Delimiter from '@editorjs/delimiter';
-// @ts-ignore
+// @ts-expect-error EditorJS plugin package has no proper TS default export typings
 import Table from '@editorjs/table';
-// @ts-ignore
-import Marker from '@editorjs/marker'; // NEU: Leuchtstift importieren
+// @ts-expect-error EditorJS plugin package has no proper TS default export typings
+import Marker from '@editorjs/marker';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +33,8 @@ const EMPTY_DATA: OutputData = { blocks: [] };
 const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
   const holderRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<EditorJS | null>(null);
+  const isInitializedRef = useRef(false);
+  const isUpdatingRef = useRef(false);
 
   // Ref, um den externen Wert zu verfolgen und unnötige Updates zu vermeiden
   const externalValueRef = useRef(value);
@@ -40,7 +42,9 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
   // ── Editor initialisieren und zerstören ───────────────────────────────────
 
   useEffect(() => {
-    if (!holderRef.current) return;
+    if (!holderRef.current || isInitializedRef.current) return;
+
+    isInitializedRef.current = true;
 
     const editor = new EditorJS({
       holder: holderRef.current,
@@ -59,6 +63,7 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
       data: value && value.blocks && value.blocks.length > 0 ? value : EMPTY_DATA,
 
       onChange: async (api) => {
+        if (isUpdatingRef.current) return;
         const savedData = await api.saver.save();
         // Aktualisiere den externen Wert, um die Referenz synchron zu halten
         externalValueRef.current = savedData;
@@ -74,6 +79,7 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
         editorRef.current.destroy();
         editorRef.current = null;
       }
+      isInitializedRef.current = false;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId]); // Editor nur bei Dokumenten-Wechsel neu initialisieren
@@ -82,12 +88,17 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
   // ── Externen Wert aktualisieren (z.B. durch Vorlagen) ────────────────────
 
   useEffect(() => {
-    // Nur aktualisieren, wenn sich der Wert wirklich geändert hat
+    // Nur aktualisieren, wenn sich der Wert wirklich geändert hat und der Editor bereit ist
     if (editorRef.current && value !== externalValueRef.current) {
         // Vergleiche den Inhalt, nicht nur die Referenz
         if (JSON.stringify(value) !== JSON.stringify(externalValueRef.current)) {
-            editorRef.current.render(value);
-            externalValueRef.current = value;
+            isUpdatingRef.current = true;
+            editorRef.current.render(value).then(() => {
+              externalValueRef.current = value;
+              isUpdatingRef.current = false;
+            }).catch(() => {
+              isUpdatingRef.current = false;
+            });
         }
     }
   }, [value]);
@@ -107,6 +118,8 @@ const editorStyles = `
   /* ... Stile bleiben unverändert ... */
   .ce-block__content {
     max-width: 680px;
+    width: 100%;
+    margin: 0 auto;
     font-family: 'Georgia', serif;
     color: #2c3e50;
     line-height: 1.8;
@@ -187,6 +200,23 @@ const editorStyles = `
   mark.cdx-marker {
       background-color: rgba(245, 235, 111, 0.29);
       padding: 3px 0;
+  }
+  /* Responsive Anpassungen */
+  @media (max-width: 1200px) {
+    .ce-block__content {
+      max-width: 600px;
+    }
+  }
+  @media (max-width: 992px) {
+    .ce-block__content {
+      max-width: 520px;
+    }
+  }
+  @media (max-width: 768px) {
+    .ce-block__content {
+      max-width: 100%;
+      padding: 0 16px;
+    }
   }
   @media print {
     .ce-toolbar { display: none !important; }

@@ -11,24 +11,22 @@ interface Dokument {
   id: string;
   titel: string;
   inhalt: string;
-  typ: 'gottesdienst' | 'notiz';
+  typ: 'notiz';
   isFavorit: boolean;
   datum: any;
 }
 
 export default function DashboardPage() {
-  const { user, loading, userProfile } = useAuth(); // userProfile hier einbeziehen
+  const { user, loading, userProfile } = useAuth();
   const router = useRouter();
   const [dokumente, setDokumente] = useState<Dokument[]>([]);
 
-  // Redirect, wenn nicht eingeloggt
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
 
-  // Dokumente laden
   useEffect(() => {
     if (user) {
       const q = query(
@@ -43,21 +41,19 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  const createNewDocument = async (typ: 'gottesdienst' | 'notiz') => {
+  const createNewDocument = async (typ: 'notiz') => {
     if (!user) return;
-    const isGottesdienst = typ === 'gottesdienst';
     const neu = {
-      titel: isGottesdienst ? 'Neuer Gottesdienst' : 'Neue Notiz',
-      inhalt: isGottesdienst ? '# Neuer Gottesdienst\n\n...' : '# Neue Notiz\n\n...',
+      titel: 'Neue Notiz',
+      inhalt: '# Neue Notiz\n\n...',
       datum: new Date().toISOString(),
       isFavorit: false,
       typ: typ,
     };
     const docRef = await addDoc(collection(db, 'users', user.uid, 'dokumente'), neu);
-    router.push(isGottesdienst ? `/gottesdienste?doc=${docRef.id}` : `/notizen?doc=${docRef.id}`);
+    router.push(`/notizen?doc=${docRef.id}`);
   };
 
-  // Ladeanzeige, bis Benutzerdaten und Profil vollständig geladen sind
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -67,11 +63,9 @@ export default function DashboardPage() {
     );
   }
 
-  // Dashboard rendern, wenn alles geladen ist
   return (
     <Dashboard 
       dokumente={dokumente}
-      onNeuGottesdienst={() => createNewDocument('gottesdienst')}
       onNeuNotiz={() => createNewDocument('notiz')}
     />
   );

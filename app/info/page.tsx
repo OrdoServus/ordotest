@@ -19,7 +19,7 @@ export default function InfoPage() {
         <h1 style={{ fontSize: '2.5rem', marginBottom: '20px' }}>Dein digitaler Dienst am Altar & Schreibtisch</h1>
         <p style={{ fontSize: '1.2rem', maxWidth: '800px', margin: '0 auto 30px' }}>
           OrdoServus unterstützt dich als Pfarrer, Diakon oder liturgischen Dienst bei der Vorbereitung 
-          deiner Gottesdienste und der Organisation deiner pastoralen Gedanken.
+          deiner liturgischen Aufgaben und der Organisation deiner pastoralen Gedanken.
         </p>
         <Link href="/login">
           <button style={ctaButtonStyle}>Jetzt kostenlos starten</button>

@@ -18,13 +18,22 @@ const WhatsNewPage: React.FC = () => {
   useEffect(() => {
     const fetchChangelog = async () => {
       try {
-        // Fetch data from the local /public/updates.json file
-        const response = await fetch('/updates.json');
+        // Fetch data from GitHub releases API
+        const response = await fetch('https://api.github.com/repos/ordoservus/ordoservus/releases');
         if (!response.ok) {
-          throw new Error(`Fehler beim Laden der lokalen Updates.json. Status: ${response.status}`);
+          throw new Error(`Fehler beim Laden von GitHub. Status: ${response.status}`);
         }
         const data = await response.json();
-        setUpdates(data);
+        
+        // Transform GitHub release data to our format
+        const transformedData: ChangelogEntry[] = data.map((release: any) => ({
+          version: release.tag_name.replace('v', ''),
+          date: new Date(release.published_at).toLocaleDateString('de-DE'),
+          title: release.name || release.tag_name,
+          changes: release.body ? release.body.split('\n').filter((line: string) => line.trim()) : []
+        }));
+        
+        setUpdates(transformedData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Ein unbekannter Fehler ist aufgetreten');
       } finally {

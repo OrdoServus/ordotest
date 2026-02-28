@@ -7,385 +7,483 @@ import { EventClickArg, EventInput, EventDropArg } from '@fullcalendar/core';
 import { db } from '../firebase/config';
 import { useAuth } from '../AuthContext';
 import {
-  collection,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  query,
-  orderBy,
-  writeBatch,
-  where,
-  getDocs,
+  collection, addDoc, updateDoc, deleteDoc, doc,
+  onSnapshot, query, orderBy, writeBatch, where, getDocs,
 } from 'firebase/firestore';
 
-// ─── Interfaces ───────────────────────────────────────────────────────────────
-interface Calendar {
-  id: string;
-  name: string;
-  color: string;
-  visible: boolean;
-}
-
-interface CalendarEvent {
-  id: string;
-  calendarId: string;
-  title: string;
-  start: string;
-  end?: string | null;
-  color: string;
-  category: string;
-  description?: string;
-  location?: string;
-  allDay?: boolean;
-}
-
-interface EventFormData {
-  calendarId: string;
-  title: string;
-  start: string;
-  end: string;
-  startTime: string;
-  endTime: string;
-  color: string;
-  category: string;
-  description: string;
-  location: string;
-  allDay: boolean;
-}
-
+// ── Interfaces ────────────────────────────────────────────────────────────────
+interface Calendar  { id: string; name: string; color: string; visible: boolean; }
+interface CalEvent  { id: string; calendarId: string; title: string; start: string; end?: string | null; color: string; category: string; description?: string; location?: string; allDay?: boolean; }
+interface EventForm { calendarId: string; title: string; start: string; end: string; startTime: string; endTime: string; color: string; category: string; description: string; location: string; allDay: boolean; }
 type ViewMode = 'dayGridMonth' | 'dayGridWeek' | 'dayGridDay';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const DEFAULT_CALENDARS: Omit<Calendar, 'id'>[] = [
+// ── Constants ─────────────────────────────────────────────────────────────────
+const DEFAULT_CALS: Omit<Calendar, 'id'>[] = [
   { name: 'Pfarrkalender', color: '#8e44ad', visible: true },
-  { name: 'Privat', color: '#e67e22', visible: true },
-  { name: 'Beerdigungen', color: '#7f8c8d', visible: false },
+  { name: 'Privat',        color: '#e67e22', visible: true },
+  { name: 'Beerdigungen',  color: '#7f8c8d', visible: true },
 ];
+const COLORS = ['#8e44ad','#e67e22','#3498db','#27ae60','#e84393','#c0392b','#2c3e50','#f39c12'];
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const EMPTY_FORM = (cals: Calendar[]): EventForm => ({
+  calendarId: cals.find(c => c.visible)?.id ?? '',
+  title: '', start: todayStr(), end: todayStr(),
+  startTime: '09:00', endTime: '10:00',
+  color: cals.find(c => c.visible)?.color ?? '#2c3e50',
+  category: 'termin', description: '', location: '', allDay: true,
+});
 
-const COLOR_OPTIONS = ['#8e44ad', '#e67e22', '#3498db', '#27ae60', '#e84393', '#c0392b', '#2c3e50', '#f39c12'];
-
-// ─── Helper ───────────────────────────────────────────────────────────────────
-const toDateStr = (d: Date) => d.toISOString().slice(0, 10);
-const today = () => toDateStr(new Date());
-
-// ─── Component ────────────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function KalenderPage() {
   const { user } = useAuth();
-  const calendarRef = useRef<InstanceType<typeof FullCalendar>>(null);
+  const calRef = useRef<InstanceType<typeof FullCalendar>>(null);
 
-  const [calendars, setCalendars] = useState<Calendar[]>([]);
-  const [visibleCalendars, setVisibleCalendars] = useState<{[key: string]: boolean}>({});
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [view, setView] = useState<ViewMode>('dayGridMonth');
+  const [calendars,    setCalendars]    = useState<Calendar[]>([]);
+  const [visibleCals,  setVisibleCals]  = useState<Record<string, boolean>>({});
+  const [events,       setEvents]       = useState<CalEvent[]>([]);
+  const [view,         setView]         = useState<ViewMode>('dayGridMonth');
+  const [currentTitle, setCurrentTitle] = useState('');
+  const [searchQuery,  setSearchQuery]  = useState('');
+  const [sidebarOpen,  setSidebarOpen]  = useState(true);
+  const [isLoading,    setIsLoading]    = useState(false);
+  const [formError,    setFormError]    = useState<string | null>(null);
 
-  const [isEventModalOpen, setEventModalOpen] = useState(false);
-  const [eventFormData, setEventFormData] = useState<EventFormData | null>(null);
+  // Event modal
+  const [eventModalOpen, setEventModalOpen] = useState(false);
+  const [eventForm,      setEventForm]      = useState<EventForm | null>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
-  const [isCalendarModalOpen, setCalendarModalOpen] = useState(false);
-  const [calendarFormData, setCalendarFormData] = useState<{name: string, color: string}>({ name: '', color: COLOR_OPTIONS[0]});
+  // Calendar modal
+  const [calModalOpen,    setCalModalOpen]    = useState(false);
+  const [calForm,         setCalForm]         = useState({ name: '', color: COLORS[0] });
   const [editingCalendar, setEditingCalendar] = useState<Calendar | null>(null);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [currentTitle, setCurrentTitle] = useState('');
-
-  const EMPTY_FORM = (): EventFormData => ({
-    calendarId: calendars.find(c => c.visible)?.id ?? '',
-    title: '', start: '', end: '', startTime: '09:00', endTime: '10:00', color: '#2c3e50',
-    category: 'gottesdienst', description: '', location: '', allDay: true,
-  });
-
-  // ─── Firestore Sync ──────────────────────────────────────────────────────
+  // ── Firestore Listeners ───────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
-    const unsubEvents = onSnapshot(query(collection(db, 'users', user.uid, 'events'), orderBy('start', 'asc')), (snap) => {
-      setEvents(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<CalendarEvent, 'id'>) })));
-    });
-    const unsubCalendars = onSnapshot(query(collection(db, 'users', user.uid, 'calendars')), async (snap) => {
-      if (snap.empty) {
-        const batch = writeBatch(db);
-        const defaultCals = DEFAULT_CALENDARS.map(cal => { const docRef = doc(collection(db, 'users', user.uid, 'calendars')); batch.set(docRef, cal); return { id: docRef.id, ...cal }; });
-        await batch.commit();
-        setCalendars(defaultCals);
-        setVisibleCalendars(Object.fromEntries(defaultCals.map(c => [c.id, c.visible])));
-      } else {
-        const cals = snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Calendar, 'id'>) }));
-        setCalendars(cals);
-        setVisibleCalendars(p => cals.reduce((acc, c) => ({...acc, [c.id]: p[c.id] ?? c.visible}), {}));
+
+    const unsubEvents = onSnapshot(
+      query(collection(db, 'users', user.uid, 'events'), orderBy('start', 'asc')),
+      snap => setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() } as CalEvent)))
+    );
+
+    const unsubCals = onSnapshot(
+      query(collection(db, 'users', user.uid, 'calendars')),
+      async snap => {
+        if (snap.empty) {
+          // Create default calendars
+          const batch = writeBatch(db);
+          const created = DEFAULT_CALS.map(cal => {
+            const ref = doc(collection(db, 'users', user.uid, 'calendars'));
+            batch.set(ref, cal);
+            return { id: ref.id, ...cal };
+          });
+          await batch.commit();
+          setCalendars(created);
+          setVisibleCals(Object.fromEntries(created.map(c => [c.id, c.visible])));
+        } else {
+          const cals = snap.docs.map(d => ({ id: d.id, ...d.data() } as Calendar));
+          setCalendars(cals);
+          setVisibleCals(prev => cals.reduce((acc, c) => ({ ...acc, [c.id]: prev[c.id] ?? c.visible }), {} as Record<string, boolean>));
+        }
       }
-    });
-    return () => { unsubEvents(); unsubCalendars(); };
+    );
+
+    return () => { unsubEvents(); unsubCals(); };
   }, [user]);
 
-  // ─── UI Control ──────────────────────────────────────────────────────────
-  const goToday  = () => calendarRef.current?.getApi().today();
-  const goPrev   = () => calendarRef.current?.getApi().prev();
-  const goNext   = () => calendarRef.current?.getApi().next();
-  const changeView = (v: ViewMode) => { setView(v); calendarRef.current?.getApi().changeView(v); };
-  const updateTitle = useCallback(() => { if (calendarRef.current) setCurrentTitle(calendarRef.current.getApi().getCurrentData().viewTitle); }, []);
+  // ── Navigation ────────────────────────────────────────────────────────────
+  const updateTitle  = useCallback(() => { if (calRef.current) setCurrentTitle(calRef.current.getApi().getCurrentData().viewTitle); }, []);
+  const goToday      = () => calRef.current?.getApi().today();
+  const goPrev       = () => calRef.current?.getApi().prev();
+  const goNext       = () => calRef.current?.getApi().next();
+  const changeView   = (v: ViewMode) => { setView(v); calRef.current?.getApi().changeView(v); };
 
-  // ─── Event Modal Handlers ────────────────────────────────────────────────
-  const openCreateEvent = useCallback((dateStr?: string) => {
+  // ── Event Modal ──────────────────────────────────────────────────────────
+  const openCreate = useCallback((dateStr?: string) => {
     setEditingEventId(null);
-    setEventFormData({ ...EMPTY_FORM(), start: dateStr ?? today(), end: dateStr ?? today() });
-    setError(null);
+    setEventForm({ ...EMPTY_FORM(calendars), start: dateStr ?? todayStr(), end: dateStr ?? todayStr() });
+    setFormError(null);
     setEventModalOpen(true);
   }, [calendars]);
 
-  const openEditEvent = useCallback((ev: CalendarEvent) => {
+  const openEdit = useCallback((ev: CalEvent) => {
     setEditingEventId(ev.id);
-    setEventFormData({
-      calendarId: ev.calendarId, title: ev.title,
-      start: ev.start.slice(0, 10), end: ev.end ? ev.end.slice(0, 10) : ev.start.slice(0, 10),
-      startTime: ev.start.length > 10 ? ev.start.slice(11, 16) : '09:00',
-      endTime: ev.end && ev.end.length > 10 ? ev.end.slice(11, 16) : '10:00',
-      color: ev.color, category: ev.category, description: ev.description ?? '', location: ev.location ?? '', allDay: ev.allDay ?? true,
+    setEventForm({
+      calendarId: ev.calendarId,
+      title:      ev.title,
+      start:      ev.start.slice(0, 10),
+      end:        ev.end ? ev.end.slice(0, 10) : ev.start.slice(0, 10),
+      startTime:  ev.start.length > 10 ? ev.start.slice(11, 16) : '09:00',
+      endTime:    ev.end && ev.end.length > 10 ? ev.end.slice(11, 16) : '10:00',
+      color:      ev.color,
+      category:   ev.category,
+      description:ev.description ?? '',
+      location:   ev.location ?? '',
+      allDay:     ev.allDay ?? true,
     });
-    setError(null);
+    setFormError(null);
     setEventModalOpen(true);
   }, []);
 
-  const handleDateClick = useCallback((arg: DateClickArg) => openCreateEvent(arg.dateStr), [openCreateEvent]);
-  const handleEventClick = useCallback((arg: EventClickArg) => { const ev = events.find((e) => e.id === arg.event.id); if (ev) openEditEvent(ev); }, [events, openEditEvent]);
+  const handleDateClick  = useCallback((arg: DateClickArg) => openCreate(arg.dateStr), [openCreate]);
+  const handleEventClick = useCallback((arg: EventClickArg) => {
+    const ev = events.find(e => e.id === arg.event.id);
+    if (ev) openEdit(ev);
+  }, [events, openEdit]);
+
   const handleEventDrop = useCallback(async (arg: EventDropArg) => {
     if (!user) return;
     try { await updateDoc(doc(db, 'users', user.uid, 'events', arg.event.id), { start: arg.event.startStr, end: arg.event.endStr || null }); }
     catch { arg.revert(); }
   }, [user]);
 
-  // ─── Calendar Modal Handlers ─────────────────────────────────────────────
-  const openCalendarModal = (cal: Calendar | null) => {
-    setEditingCalendar(cal);
-    setCalendarFormData(cal ? { name: cal.name, color: cal.color } : { name: '', color: COLOR_OPTIONS[0] });
-    setCalendarModalOpen(true);
-  }
-
-  const handleSaveCalendar = async () => {
-    if (!user || !calendarFormData.name.trim()) return;
-    setIsLoading(true);
-    try {
-      const payload = { name: calendarFormData.name.trim(), color: calendarFormData.color };
-      if (editingCalendar) {
-        await updateDoc(doc(db, 'users', user.uid, 'calendars', editingCalendar.id), payload);
-      } else {
-        await addDoc(collection(db, 'users', user.uid, 'calendars'), { ...payload, visible: true });
-      }
-      setCalendarModalOpen(false);
-    } catch (err) { console.error(err); }
-    finally { setIsLoading(false); }
-  }
-
-  const handleDeleteCalendar = async () => {
-    if (!user || !editingCalendar || !confirm(`Kalender "${editingCalendar.name}" und alle zugehörigen Termine wirklich löschen?`)) return;
-    setIsLoading(true);
-    try {
-      const batch = writeBatch(db);
-      // Delete calendar doc
-      batch.delete(doc(db, 'users', user.uid, 'calendars', editingCalendar.id));
-      // Find and delete all events in that calendar
-      const eventsQuery = query(collection(db, 'users', user.uid, 'events'), where('calendarId', '==', editingCalendar.id));
-      const eventSnap = await getDocs(eventsQuery);
-      eventSnap.docs.forEach(eventDoc => batch.delete(eventDoc.ref));
-      await batch.commit();
-      setCalendarModalOpen(false);
-    } catch (err) { console.error(err); }
-    finally { setIsLoading(false); }
-  }
-
-  // ─── General State & Form Handlers ────────────────────────────────────────
-  const handleEventFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    if (!eventFormData) return;
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    if (!eventForm) return;
     const { name, value, type } = e.target;
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    setEventFormData(p => ({ ...p!, [name]: val }));
-    if (name === 'calendarId') {
-      const cal = calendars.find(c => c.id === value);
-      if (cal) setEventFormData(p => ({...p!, color: cal.color }))
-    }
+    setEventForm(p => {
+      const updated = { ...p!, [name]: val };
+      // Auto-set color when calendar changes
+      if (name === 'calendarId') {
+        const cal = calendars.find(c => c.id === value);
+        if (cal) updated.color = cal.color;
+      }
+      return updated;
+    });
   };
 
-  const toggleCalendarVisibility = async (id: string) => {
-    if (!user) return;
-    const newVisibility = !visibleCalendars[id];
-    setVisibleCalendars(prev => ({ ...prev, [id]: newVisibility }));
-    try { await updateDoc(doc(db, 'users', user.uid, 'calendars', id), { visible: newVisibility }); }
-    catch (err) { setVisibleCalendars(prev => ({ ...prev, [id]: !newVisibility })); console.error(err); }
-  };
-
-  // ─── Save / Delete Event ────────────────────────────────────────────────────
   const handleSaveEvent = async () => {
-    if (!user || !eventFormData) return;
-    if (!eventFormData.title.trim() || !eventFormData.start || !eventFormData.calendarId) return setError('Titel, Datum und Kalender sind erforderlich.');
-    setIsLoading(true); setError(null);
+    if (!user || !eventForm) return;
+    if (!eventForm.title.trim()) return setFormError('Bitte einen Titel eingeben.');
+    if (!eventForm.start)        return setFormError('Bitte ein Startdatum wählen.');
+    if (!eventForm.calendarId)   return setFormError('Bitte einen Kalender auswählen.');
+
+    setIsLoading(true); setFormError(null);
     try {
-      const payload = { ...eventFormData, start: eventFormData.allDay ? eventFormData.start : `${eventFormData.start}T${eventFormData.startTime}`, end: eventFormData.end && eventFormData.end !== eventFormData.start ? (eventFormData.allDay ? eventFormData.end : `${eventFormData.end}T${eventFormData.endTime}`) : null };
+      const payload = {
+        ...eventForm,
+        start: eventForm.allDay ? eventForm.start : `${eventForm.start}T${eventForm.startTime}`,
+        end:   eventForm.end && eventForm.end !== eventForm.start
+          ? (eventForm.allDay ? eventForm.end : `${eventForm.end}T${eventForm.endTime}`)
+          : null,
+      };
       if (editingEventId) {
         await updateDoc(doc(db, 'users', user.uid, 'events', editingEventId), payload);
       } else {
         await addDoc(collection(db, 'users', user.uid, 'events'), payload);
       }
-      setEventModalOpen(false); setEventFormData(null); setEditingEventId(null);
-    } catch { setError('Fehler beim Speichern.'); } finally { setIsLoading(false); }
+      setEventModalOpen(false); setEventForm(null); setEditingEventId(null);
+    } catch { setFormError('Fehler beim Speichern.'); }
+    finally { setIsLoading(false); }
   };
 
   const handleDeleteEvent = async () => {
-    if (!user || !editingEventId || !confirm('Diesen Termin wirklich löschen?')) return;
+    if (!user || !editingEventId || !confirm('Termin wirklich löschen?')) return;
     setIsLoading(true);
-    try { await deleteDoc(doc(db, 'users', user.uid, 'events', editingEventId)); setEventModalOpen(false); setEditingEventId(null); }
-    catch { setError('Fehler beim Löschen.'); } finally { setIsLoading(false); }
+    try {
+      await deleteDoc(doc(db, 'users', user.uid, 'events', editingEventId));
+      setEventModalOpen(false); setEditingEventId(null);
+    } catch { setFormError('Fehler beim Löschen.'); }
+    finally { setIsLoading(false); }
   };
 
-  // ─── Derived / Filtered Data ───────────────────────────────────────────────
-  const filteredEvents = events.filter(ev => visibleCalendars[ev.calendarId] && (!searchQuery || ev.title.toLowerCase().includes(searchQuery.toLowerCase()) || (ev.description ?? '').toLowerCase().includes(searchQuery.toLowerCase()) || (ev.location ?? '').toLowerCase().includes(searchQuery.toLowerCase())));
-  const upcomingEvents = events.filter(ev => ev.start >= today() && visibleCalendars[ev.calendarId]).slice(0, 8);
-  const calendarEvents: EventInput[] = filteredEvents.map(e => ({ id: e.id, title: e.title, start: e.start, end: e.end, backgroundColor: e.color, borderColor: e.color, allDay: e.allDay ?? true, extendedProps: { location: e.location, description: e.description } }));
+  // ── Calendar Modal ────────────────────────────────────────────────────────
+  const openCalModal = (cal: Calendar | null) => {
+    setEditingCalendar(cal);
+    setCalForm(cal ? { name: cal.name, color: cal.color } : { name: '', color: COLORS[0] });
+    setCalModalOpen(true);
+  };
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
+  const handleSaveCal = async () => {
+    if (!user || !calForm.name.trim()) return;
+    setIsLoading(true);
+    try {
+      const payload = { name: calForm.name.trim(), color: calForm.color };
+      if (editingCalendar) {
+        await updateDoc(doc(db, 'users', user.uid, 'calendars', editingCalendar.id), payload);
+      } else {
+        await addDoc(collection(db, 'users', user.uid, 'calendars'), { ...payload, visible: true });
+      }
+      setCalModalOpen(false);
+    } finally { setIsLoading(false); }
+  };
+
+  const handleDeleteCal = async () => {
+    if (!user || !editingCalendar || !confirm(`Kalender "${editingCalendar.name}" und alle Termine löschen?`)) return;
+    setIsLoading(true);
+    try {
+      const batch = writeBatch(db);
+      batch.delete(doc(db, 'users', user.uid, 'calendars', editingCalendar.id));
+      const evSnap = await getDocs(query(collection(db, 'users', user.uid, 'events'), where('calendarId', '==', editingCalendar.id)));
+      evSnap.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      setCalModalOpen(false);
+    } finally { setIsLoading(false); }
+  };
+
+  const toggleCalVis = async (id: string) => {
+    if (!user) return;
+    const next = !visibleCals[id];
+    setVisibleCals(p => ({ ...p, [id]: next }));
+    try { await updateDoc(doc(db, 'users', user.uid, 'calendars', id), { visible: next }); }
+    catch { setVisibleCals(p => ({ ...p, [id]: !next })); }
+  };
+
+  // ── Derived Data ──────────────────────────────────────────────────────────
+  const filteredEvents = events.filter(ev =>
+    visibleCals[ev.calendarId] &&
+    (!searchQuery || [ev.title, ev.description ?? '', ev.location ?? ''].some(f => f.toLowerCase().includes(searchQuery.toLowerCase())))
+  );
+  const upcomingEvents = events
+    .filter(ev => ev.start >= todayStr() && visibleCals[ev.calendarId])
+    .slice(0, 8);
+  const calendarEvents: EventInput[] = filteredEvents.map(e => ({
+    id: e.id, title: e.title, start: e.start, end: e.end,
+    backgroundColor: e.color, borderColor: e.color, allDay: e.allDay ?? true,
+    extendedProps: { location: e.location, description: e.description },
+  }));
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div style={s.page}>
-      {/* Toolbars, etc. */}
+      {/* Top Bar */}
       <div style={s.topBar}>
-        <div style={s.topBarLeft}>
+        <div style={s.topLeft}>
           <button style={s.todayBtn} onClick={goToday}>Heute</button>
-          <div style={s.navGroup}><button style={s.navBtn} onClick={goPrev}>‹</button><button style={s.navBtn} onClick={goNext}>›</button></div>
+          <div style={s.navGroup}>
+            <button style={s.navBtn} onClick={goPrev}>‹</button>
+            <button style={s.navBtn} onClick={goNext}>›</button>
+          </div>
           <h2 style={s.currentTitle}>{currentTitle}</h2>
         </div>
-        <div style={s.topBarCenter}>
-          <div style={s.searchWrapper}><span style={s.searchIcon}>🔍</span><input style={s.searchInput} placeholder="Termine suchen..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />{searchQuery && <button style={s.searchClear} onClick={() => setSearchQuery('')}>✕</button>}</div>
+        <div style={s.topCenter}>
+          <div style={s.searchWrap}>
+            <span>🔍</span>
+            <input style={s.searchInput} placeholder="Termine suchen…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+            {searchQuery && <button style={s.clearBtn} onClick={() => setSearchQuery('')}>✕</button>}
+          </div>
         </div>
-        <div style={s.topBarRight}>
-          <div style={s.viewToggle}>{(['dayGridMonth', 'dayGridWeek', 'dayGridDay'] as ViewMode[]).map(v => <button key={v} style={view === v ? { ...s.viewBtn, ...s.viewBtnActive } : s.viewBtn} onClick={() => changeView(v)}>{v === 'dayGridMonth' ? 'Monat' : v === 'dayGridWeek' ? 'Woche' : 'Tag'}</button>)}</div>
-          <button style={s.newEventBtn} onClick={() => openCreateEvent()}>+ Neuer Termin</button>
-          <button style={s.sidebarToggle} onClick={() => setSidebarOpen(p => !p)} title={sidebarOpen ? 'Sidebar schließen' : 'Sidebar öffnen'}>{sidebarOpen ? '⊟' : '⊞'}</button>
+        <div style={s.topRight}>
+          <div style={s.viewGroup}>
+            {(['dayGridMonth','dayGridWeek','dayGridDay'] as ViewMode[]).map(v => (
+              <button key={v} style={view === v ? { ...s.viewBtn, ...s.viewBtnActive } : s.viewBtn} onClick={() => changeView(v)}>
+                {v === 'dayGridMonth' ? 'Monat' : v === 'dayGridWeek' ? 'Woche' : 'Tag'}
+              </button>
+            ))}
+          </div>
+          <button style={s.newBtn} onClick={() => openCreate()}>+ Neuer Termin</button>
+          <button style={s.sidebarToggle} onClick={() => setSidebarOpen(p => !p)} title="Sidebar">
+            {sidebarOpen ? '◀' : '▶'}
+          </button>
         </div>
       </div>
 
-      <div style={s.mainLayout}>
+      <div style={s.body}>
+        {/* Sidebar */}
         {sidebarOpen && (
           <aside style={s.sidebar}>
-            <div style={s.sideSection}><FullCalendar plugins={[dayGridPlugin, interactionPlugin]} initialView="dayGridMonth" locale="de" headerToolbar={false} height="auto" dateClick={arg => { calendarRef.current?.getApi().gotoDate(arg.date); changeView('dayGridDay'); }} /></div>
+            {/* Mini calendar */}
             <div style={s.sideSection}>
-                <div style={s.calendarHeader}><h3 style={s.sideSectionTitle}>Meine Kalender</h3><button style={s.addCalendarBtn} onClick={() => openCalendarModal(null)}>+</button></div>
-                {calendars.map(cal => (
-                    <div key={cal.id} style={s.calCheckRow}>
-                    <input type="checkbox" id={`cal-vis-${cal.id}`} checked={visibleCalendars[cal.id] ?? false} onChange={() => toggleCalendarVisibility(cal.id)} style={{...s.calCheckbox, accentColor: cal.color}} />
-                    <label htmlFor={`cal-vis-${cal.id}`} style={{...s.calLabel, color: cal.color}}>{cal.name}</label>
-                    <button style={s.editCalendarBtn} onClick={() => openCalendarModal(cal)}>✏️</button>
-                    </div>
-                ))}
+              <FullCalendar
+                plugins={[dayGridPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                locale="de"
+                headerToolbar={false}
+                height="auto"
+                dateClick={arg => { calRef.current?.getApi().gotoDate(arg.date); changeView('dayGridDay'); }}
+              />
             </div>
+            {/* Calendars */}
             <div style={s.sideSection}>
-              <h3 style={s.sideSectionTitle}>Nächste Termine</h3>
-              {upcomingEvents.length === 0 && <p style={s.sideEmpty}>Keine kommenden Termine.</p>}
-              {upcomingEvents.map(ev => <div key={ev.id} style={{ ...s.upcomingItem, borderLeftColor: ev.color }} onClick={() => openEditEvent(ev)}><div style={s.upcomingInfo}><div style={s.upcomingTitle}>{ev.title}</div><div style={s.upcomingDate}>{new Date(ev.start).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' })}{ev.location && ` · ${ev.location}`}</div></div></div>)}
+              <div style={s.sideHeader}>
+                <span style={s.sideTitle}>Meine Kalender</span>
+                <button style={s.addBtn} onClick={() => openCalModal(null)}>+</button>
+              </div>
+              {calendars.map(cal => (
+                <div key={cal.id} style={s.calRow}>
+                  <input type="checkbox" checked={visibleCals[cal.id] ?? true} onChange={() => toggleCalVis(cal.id)} style={{ accentColor: cal.color, width: '15px', height: '15px', cursor: 'pointer' }} />
+                  <span style={{ ...s.calLabel, color: cal.color }}>{cal.name}</span>
+                  <button style={s.editCalBtn} onClick={() => openCalModal(cal)}>✏️</button>
+                </div>
+              ))}
+            </div>
+            {/* Upcoming */}
+            <div style={s.sideSection}>
+              <div style={s.sideTitle}>Nächste Termine</div>
+              {upcomingEvents.length === 0 && <p style={s.sideEmpty}>Keine bevorstehenden Termine.</p>}
+              {upcomingEvents.map(ev => (
+                <div key={ev.id} style={{ ...s.upcomingItem, borderLeftColor: ev.color }} onClick={() => openEdit(ev)}>
+                  <div style={s.upcomingTitle}>{ev.title}</div>
+                  <div style={s.upcomingDate}>
+                    {new Date(ev.start.length === 10 ? ev.start + 'T00:00:00' : ev.start).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    {ev.location && ` · ${ev.location}`}
+                  </div>
+                </div>
+              ))}
             </div>
           </aside>
         )}
 
-        <div style={s.calendarArea}><FullCalendar ref={calendarRef} plugins={[dayGridPlugin, interactionPlugin]} initialView={view} locale="de" headerToolbar={false} events={calendarEvents} dateClick={handleDateClick} eventClick={handleEventClick} eventDrop={handleEventDrop} editable={true} droppable={true} height="auto" dayMaxEvents={4} datesSet={updateTitle} eventDidMount={info => { info.el.title = [ info.event.title, info.event.extendedProps.location, info.event.extendedProps.description ].filter(Boolean).join(' · '); }} /></div>
+        {/* Main Calendar */}
+        <div style={s.calArea}>
+          <FullCalendar
+            ref={calRef}
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView={view}
+            locale="de"
+            headerToolbar={false}
+            events={calendarEvents}
+            dateClick={handleDateClick}
+            eventClick={handleEventClick}
+            eventDrop={handleEventDrop}
+            editable
+            droppable
+            height="auto"
+            dayMaxEvents={4}
+            datesSet={updateTitle}
+            eventDidMount={info => {
+              const parts = [info.event.title, info.event.extendedProps.location, info.event.extendedProps.description].filter(Boolean);
+              info.el.title = parts.join(' · ');
+            }}
+          />
+        </div>
       </div>
 
-      {/* Event Modal */}
-      {isEventModalOpen && eventFormData && (
+      {/* ── Event Modal ─────────────────────────────────────────────────────── */}
+      {eventModalOpen && eventForm && (
         <div style={s.overlay} onClick={() => setEventModalOpen(false)}>
           <div style={s.modal} onClick={e => e.stopPropagation()}>
-            <div style={s.modalHeader}><h2 style={s.modalTitle}>{editingEventId ? '✏️ Termin bearbeiten' : '✨ Neuer Termin'}</h2><button style={s.modalClose} onClick={() => setEventModalOpen(false)}>✕</button></div>
-            {error && <div style={s.errorBanner}>{error}</div>}
-            <div style={s.modalSection}><label style={s.modalLabel}>Kalender</label><select name="calendarId" value={eventFormData.calendarId} onChange={handleEventFormChange} style={s.modalInput}><option value="" disabled>Kalender auswählen</option>{calendars.map(cal => <option key={cal.id} value={cal.id}>{cal.name}</option>)}</select></div>
-            <div style={s.modalSection}><label style={s.modalLabel}>Titel *</label><input name="title" value={eventFormData.title} onChange={handleEventFormChange} placeholder="z. B. Pfarrmesse..." style={s.modalInput} autoFocus /></div>
-            <div style={s.modalSection}><div style={s.allDayRow}><label style={s.modalLabel}>Datum & Zeit</label><label style={s.checkLabel}><input type="checkbox" name="allDay" checked={eventFormData.allDay} onChange={handleEventFormChange} style={{ marginRight: '6px' }} />Ganztägig</label></div><div style={s.dateTimeGrid}><div><div style={s.subLabel}>Von</div><input name="start" type="date" value={eventFormData.start} onChange={handleEventFormChange} style={s.modalInput} /></div>{!eventFormData.allDay && <div><div style={s.subLabel}>Uhrzeit</div><input name="startTime" type="time" value={eventFormData.startTime} onChange={handleEventFormChange} style={s.modalInput} /></div>}<div><div style={s.subLabel}>Bis</div><input name="end" type="date" value={eventFormData.end} onChange={handleEventFormChange} style={s.modalInput} /></div>{!eventFormData.allDay && <div><div style={s.subLabel}>Uhrzeit</div><input name="endTime" type="time" value={eventFormData.endTime} onChange={handleEventFormChange} style={s.modalInput} /></div>}</div></div>
-            <div style={s.modalSection}><label style={s.modalLabel}>📍 Ort</label><input name="location" value={eventFormData.location} onChange={handleEventFormChange} placeholder="z. B. Pfarrkirche St. Maria" style={s.modalInput} /></div>
-            <div style={s.modalSection}><label style={s.modalLabel}>📝 Beschreibung</label><textarea name="description" value={eventFormData.description} onChange={handleEventFormChange} placeholder="Notizen, Hinweise, Ablauf..." style={{ ...s.modalInput, height: '90px', resize: 'vertical' }} /></div>
-            <div style={{...s.previewStrip, backgroundColor: eventFormData.color}}><span style={s.previewTitle}>{eventFormData.title || 'Vorschau Titel'}</span>{eventFormData.location && <span style={s.previewLocation}>· {eventFormData.location}</span>}</div>
-            <div style={s.modalActions}>{editingEventId && <button onClick={handleDeleteEvent} disabled={isLoading} style={s.deleteBtn}>🗑 Löschen</button>}<button onClick={() => setEventModalOpen(false)} style={s.cancelBtn}>Abbrechen</button><button onClick={handleSaveEvent} disabled={isLoading} style={s.saveBtn}>{isLoading ? 'Speichert...' : editingEventId ? '✓ Aktualisieren' : '✓ Erstellen'}</button></div>
+            <div style={s.modalHeader}>
+              <h2 style={s.modalTitle}>{editingEventId ? '✏️ Termin bearbeiten' : '✨ Neuer Termin'}</h2>
+              <button style={s.modalClose} onClick={() => setEventModalOpen(false)}>✕</button>
+            </div>
+            {formError && <div style={s.errorBanner}>{formError}</div>}
+
+            <label style={s.ml}>Kalender</label>
+            <select name="calendarId" value={eventForm.calendarId} onChange={handleFormChange} style={s.mi}>
+              <option value="">Kalender auswählen</option>
+              {calendars.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+
+            <label style={s.ml}>Titel *</label>
+            <input name="title" value={eventForm.title} onChange={handleFormChange} placeholder="z. B. Pfarrmesse…" style={s.mi} autoFocus />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={s.ml}>Datum & Zeit</label>
+              <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <input type="checkbox" name="allDay" checked={eventForm.allDay} onChange={handleFormChange} /> Ganztägig
+              </label>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: eventForm.allDay ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+              <div><div style={{ fontSize: '0.72rem', color: '#888', marginBottom: '4px' }}>Von</div><input name="start" type="date" value={eventForm.start} onChange={handleFormChange} style={s.mi} /></div>
+              {!eventForm.allDay && <div><div style={{ fontSize: '0.72rem', color: '#888', marginBottom: '4px' }}>Uhrzeit</div><input name="startTime" type="time" value={eventForm.startTime} onChange={handleFormChange} style={s.mi} /></div>}
+              <div><div style={{ fontSize: '0.72rem', color: '#888', marginBottom: '4px' }}>Bis</div><input name="end" type="date" value={eventForm.end} onChange={handleFormChange} style={s.mi} /></div>
+              {!eventForm.allDay && <div><div style={{ fontSize: '0.72rem', color: '#888', marginBottom: '4px' }}>Uhrzeit</div><input name="endTime" type="time" value={eventForm.endTime} onChange={handleFormChange} style={s.mi} /></div>}
+            </div>
+
+            <label style={s.ml}>📍 Ort</label>
+            <input name="location" value={eventForm.location} onChange={handleFormChange} placeholder="z. B. Pfarrkirche St. Maria" style={s.mi} />
+
+            <label style={s.ml}>📝 Beschreibung</label>
+            <textarea name="description" value={eventForm.description} onChange={handleFormChange} placeholder="Notizen, Ablauf…" style={{ ...s.mi, height: '80px', resize: 'vertical' }} />
+
+            {/* Color preview */}
+            <div style={{ ...s.previewBar, backgroundColor: eventForm.color }}>
+              <span style={{ color: 'white', fontWeight: 600 }}>{eventForm.title || 'Vorschau'}</span>
+              {eventForm.location && <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem' }}>· {eventForm.location}</span>}
+            </div>
+
+            <div style={s.modalActions}>
+              {editingEventId && <button onClick={handleDeleteEvent} disabled={isLoading} style={s.deleteBtn}>🗑 Löschen</button>}
+              <button onClick={() => setEventModalOpen(false)} style={s.cancelBtn}>Abbrechen</button>
+              <button onClick={handleSaveEvent} disabled={isLoading} style={s.saveBtn}>
+                {isLoading ? 'Speichert…' : editingEventId ? '✓ Aktualisieren' : '✓ Erstellen'}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Calendar Management Modal */}
-       {isCalendarModalOpen && (
-        <div style={s.overlay} onClick={() => setCalendarModalOpen(false)}>
-          <div style={s.modal} onClick={(e) => e.stopPropagation()}>
-            <div style={s.modalHeader}><h2 style={s.modalTitle}>{editingCalendar ? 'Kalender bearbeiten' : 'Neuer Kalender'}</h2><button style={s.modalClose} onClick={() => setCalendarModalOpen(false)}>✕</button></div>
-            <div style={s.modalSection}><label style={s.modalLabel}>Name</label><input value={calendarFormData.name} onChange={e => setCalendarFormData({...calendarFormData, name: e.target.value})} placeholder="Name des Kalenders" style={s.modalInput} autoFocus /></div>
-            <div style={s.modalSection}><label style={s.modalLabel}>Farbe</label><div style={s.colorRow}>{COLOR_OPTIONS.map(color => <button key={color} onClick={() => setCalendarFormData({...calendarFormData, color})} style={{...s.colorSwatch, backgroundColor: color, outline: calendarFormData.color === color ? '3px solid #1a1a1a' : 'none', outlineOffset: '2px' }} />)}</div></div>
-            <div style={s.modalActions}>{editingCalendar && <button onClick={handleDeleteCalendar} disabled={isLoading} style={s.deleteBtn}>🗑 Löschen</button>}<button onClick={() => setCalendarModalOpen(false)} style={s.cancelBtn}>Abbrechen</button><button onClick={handleSaveCalendar} disabled={isLoading} style={s.saveBtn}>{isLoading ? 'Speichert...' : '✓ Erstellen'}</button></div>
+      {/* ── Calendar Modal ───────────────────────────────────────────────────── */}
+      {calModalOpen && (
+        <div style={s.overlay} onClick={() => setCalModalOpen(false)}>
+          <div style={{ ...s.modal, maxWidth: '380px' }} onClick={e => e.stopPropagation()}>
+            <div style={s.modalHeader}>
+              <h2 style={s.modalTitle}>{editingCalendar ? 'Kalender bearbeiten' : 'Neuer Kalender'}</h2>
+              <button style={s.modalClose} onClick={() => setCalModalOpen(false)}>✕</button>
+            </div>
+            <label style={s.ml}>Name</label>
+            <input value={calForm.name} onChange={e => setCalForm(p => ({ ...p, name: e.target.value }))} placeholder="Kalendername" style={s.mi} autoFocus />
+            <label style={s.ml}>Farbe</label>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+              {COLORS.map(c => (
+                <button key={c} onClick={() => setCalForm(p => ({ ...p, color: c }))}
+                  style={{ width: '28px', height: '28px', borderRadius: '50%', border: 'none', cursor: 'pointer', backgroundColor: c, outline: calForm.color === c ? '3px solid #333' : 'none', outlineOffset: '2px' }}
+                />
+              ))}
+            </div>
+            <div style={s.modalActions}>
+              {editingCalendar && <button onClick={handleDeleteCal} disabled={isLoading} style={s.deleteBtn}>🗑 Löschen</button>}
+              <button onClick={() => setCalModalOpen(false)} style={s.cancelBtn}>Abbrechen</button>
+              <button onClick={handleSaveCal} disabled={isLoading || !calForm.name.trim()} style={s.saveBtn}>
+                {isLoading ? 'Speichert…' : '✓ Speichern'}
+              </button>
+            </div>
           </div>
         </div>
       )}
-
-      <style>{`.fc { font-family: 'Georgia', serif; } .fc-daygrid-day:hover { background: #f0f4ff !important; cursor: pointer; } .fc-daygrid-day-number { font-size: 0.85rem; padding: 6px 8px; } .fc-daygrid-day.fc-day-today { background: #fef9f0 !important; } .fc-daygrid-day.fc-day-today .fc-daygrid-day-number { background: #2c3e50; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; } .fc-col-header-cell-cushion { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; text-decoration: none !important; } .fc-event { border-radius: 4px !important; border: none !important; padding: 2px 6px !important; font-size: 0.78rem !important; cursor: pointer !important; } .fc-theme-standard td, .fc-theme-standard th, .fc-scrollgrid { border-color: #eef0f3 !important; }`}</style>
     </div>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ── Styles ────────────────────────────────────────────────────────────────────
 const s: { [key: string]: React.CSSProperties } = {
-  // Page & Layout
-  page: { display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f7f8fc', fontFamily: 'Georgia, serif', overflow: 'hidden' },
-  mainLayout: { display: 'flex', flex: 1, overflow: 'hidden' },
-  calendarArea: { flex: 1, overflowY: 'auto', padding: '16px 20px', minWidth: 0 },
-  
-  // Top Bar
-  topBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', backgroundColor: 'white', borderBottom: '1px solid #eef0f3', flexShrink: 0, gap: '12px' },
-  topBarLeft: { display: 'flex', alignItems: 'center', gap: '10px' },
-  topBarCenter: { flex: 1, minWidth: '180px', maxWidth: '380px' },
-  topBarRight: { display: 'flex', alignItems: 'center', gap: '8px' },
+  page:         { display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#f7f8fc', fontFamily: 'Georgia, serif', overflow: 'hidden' },
+  body:         { display: 'flex', flex: 1, overflow: 'hidden' },
+  calArea:      { flex: 1, overflowY: 'auto', padding: '16px 20px', minWidth: 0 },
+  // Top bar
+  topBar:       { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', backgroundColor: 'white', borderBottom: '1px solid #eef0f3', flexShrink: 0, gap: '12px', flexWrap: 'wrap' },
+  topLeft:      { display: 'flex', alignItems: 'center', gap: '10px' },
+  topCenter:    { flex: 1, minWidth: '160px', maxWidth: '360px' },
+  topRight:     { display: 'flex', alignItems: 'center', gap: '8px' },
   currentTitle: { fontSize: '1.1rem', fontWeight: 700, color: '#2c3e50', margin: 0 },
-  todayBtn: { padding: '7px 14px', backgroundColor: '#2c3e50', color: 'white', border: 'none', borderRadius: '7px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' },
-  navGroup: { display: 'flex', gap: '2px' },
-  navBtn: { width: '30px', height: '30px', border: '1px solid #dde', borderRadius: '6px', backgroundColor: 'white', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' },
-  searchWrapper: { display: 'flex', alignItems: 'center', backgroundColor: '#f3f5f9', borderRadius: '8px', padding: '0 12px', border: '1px solid #e8eaf0', gap: '8px' },
-  searchInput: { border: 'none', background: 'transparent', outline: 'none', padding: '8px 0', fontSize: '0.9rem', width: '100%' },
-  searchClear: { background: 'none', border: 'none', cursor: 'pointer', color: '#999' },
-  viewToggle: { display: 'flex', border: '1px solid #dde', borderRadius: '8px', overflow: 'hidden' },
-  viewBtn: { padding: '7px 12px', border: 'none', borderRight: '1px solid #dde', backgroundColor: 'white', cursor: 'pointer', fontSize: '0.82rem', color: '#555' },
-  viewBtnActive: { backgroundColor: '#2c3e50', color: 'white' },
-  newEventBtn: { padding: '8px 16px', backgroundColor: '#80397B', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' },
-  sidebarToggle: { width: '34px', height: '34px', border: '1px solid #dde', borderRadius: '7px', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-
+  todayBtn:     { padding: '7px 14px', backgroundColor: '#2c3e50', color: 'white', border: 'none', borderRadius: '7px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' },
+  navGroup:     { display: 'flex', gap: '2px' },
+  navBtn:       { width: '30px', height: '30px', border: '1px solid #dde', borderRadius: '6px', backgroundColor: 'white', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' },
+  searchWrap:   { display: 'flex', alignItems: 'center', backgroundColor: '#f3f5f9', borderRadius: '8px', padding: '0 12px', border: '1px solid #e8eaf0', gap: '8px' },
+  searchInput:  { border: 'none', background: 'transparent', outline: 'none', padding: '8px 0', fontSize: '0.9rem', width: '100%' },
+  clearBtn:     { background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '0.9rem' },
+  viewGroup:    { display: 'flex', border: '1px solid #dde', borderRadius: '8px', overflow: 'hidden' },
+  viewBtn:      { padding: '7px 12px', border: 'none', borderRight: '1px solid #dde', backgroundColor: 'white', cursor: 'pointer', fontSize: '0.82rem', color: '#555' },
+  viewBtnActive:{ backgroundColor: '#2c3e50', color: 'white' },
+  newBtn:       { padding: '8px 16px', backgroundColor: '#80397B', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' },
+  sidebarToggle:{ width: '34px', height: '34px', border: '1px solid #dde', borderRadius: '7px', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' },
   // Sidebar
-  sidebar: { width: '260px', minWidth: '260px', backgroundColor: 'white', borderRight: '1px solid #eef0f3', overflowY: 'auto', flexShrink: 0 },
-  sideSection: { padding: '18px 16px', borderBottom: '1px solid #f0f2f7' },
-  sideSectionTitle: { fontSize: '0.72rem', fontWeight: 700, color: '#7f8c8d', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 12px 0' },
-  calendarHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
-  addCalendarBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: '#888', padding: '4px' },
-  editCalendarBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: '#aaa', opacity: 0, transition: 'opacity 0.15s' },
-  calCheckRow: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', 'hover .editCalendarBtn': { opacity: 1 } },
-  calCheckbox: { width: '16px', height: '16px', cursor: 'pointer' },
-  calLabel: { fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', flex: 1 },
-  upcomingItem: { display: 'flex', gap: '10px', padding: '8px', borderRadius: '8px', cursor: 'pointer', marginBottom: '6px', borderLeft: '3px solid', backgroundColor: '#fafbfd' },
-  upcomingInfo: { flex: 1, minWidth: 0 },
-  upcomingTitle: { fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  upcomingDate:  { fontSize: '0.75rem', color: '#888', marginTop: '2px' },
-  sideEmpty: { fontSize: '0.85rem', color: '#aaa' },
-
+  sidebar:      { width: '255px', minWidth: '255px', backgroundColor: 'white', borderRight: '1px solid #eef0f3', overflowY: 'auto', flexShrink: 0 },
+  sideSection:  { padding: '14px', borderBottom: '1px solid #f0f2f7' },
+  sideHeader:   { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
+  sideTitle:    { fontSize: '0.72rem', fontWeight: 700, color: '#7f8c8d', textTransform: 'uppercase', letterSpacing: '0.07em' },
+  addBtn:       { background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: '#888', padding: '2px 6px' },
+  calRow:       { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' },
+  calLabel:     { flex: 1, fontWeight: 600, fontSize: '0.88rem', cursor: 'pointer' },
+  editCalBtn:   { background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', opacity: 0.5 },
+  upcomingItem: { borderLeft: '3px solid', padding: '7px 8px', borderRadius: '6px', cursor: 'pointer', marginBottom: '6px', backgroundColor: '#fafbfd' },
+  upcomingTitle:{ fontSize: '0.84rem', fontWeight: 600 },
+  upcomingDate: { fontSize: '0.74rem', color: '#888', marginTop: '2px' },
+  sideEmpty:    { fontSize: '0.83rem', color: '#aaa', margin: '8px 0 0' },
   // Modal
-  overlay: { position: 'fixed', inset: 0, backgroundColor: 'rgba(10,12,20,0.5)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)' },
-  modal: { backgroundColor: 'white', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' },
-  modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-  modalTitle: { fontSize: '1.25rem', fontWeight: 700, color: '#2c3e50', margin: 0 },
-  modalClose: { background: '#f3f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', color: '#555' },
-  modalSection: { marginBottom: '18px' },
-  modalLabel: { display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#555', marginBottom: '8px', textTransform: 'uppercase' },
-  modalInput: { width: '100%', padding: '10px 14px', borderRadius: '9px', border: '1px solid #dde', fontSize: '0.95rem', boxSizing: 'border-box', backgroundColor: '#fafbfd' },
-  allDayRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
-  checkLabel: { fontSize: '0.82rem', display: 'flex', alignItems: 'center', cursor: 'pointer' },
-  dateTimeGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
-  subLabel: { fontSize: '0.75rem', color: '#888', marginBottom: '5px' },
-  colorRow: { display: 'flex', gap: '8px', alignItems: 'center' },
-  colorSwatch: { width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer' },
-  previewStrip: { display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderRadius: '9px', color: 'white' },
-  previewTitle: { fontWeight: 700, flex: 1 },
-  previewLocation: { opacity: 0.85 },
-  errorBanner: { backgroundColor: '#fff5f5', border: '1px solid #fcc', color: '#c0392b', padding: '10px 14px', borderRadius: '9px', marginBottom: '16px' },
-  modalActions: { display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center', paddingTop: '4px' },
-  saveBtn: { padding: '10px 22px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '9px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' },
-  cancelBtn: { padding: '10px 18px', backgroundColor: '#f0f2f5', border: '1px solid #dde', borderRadius: '9px', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' },
-  deleteBtn: { padding: '10px 16px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '9px', cursor: 'pointer', fontWeight: 700, marginRight: 'auto' },
+  overlay:      { position: 'fixed', inset: 0, backgroundColor: 'rgba(10,12,20,0.5)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  modal:        { backgroundColor: 'white', borderRadius: '16px', padding: '26px', width: '100%', maxWidth: '540px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' },
+  modalHeader:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' },
+  modalTitle:   { fontSize: '1.2rem', fontWeight: 700, color: '#2c3e50', margin: 0 },
+  modalClose:   { background: '#f3f5f9', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', color: '#555', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  ml:           { display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#555', marginBottom: '6px', textTransform: 'uppercase' },
+  mi:           { width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #dde', fontSize: '0.93rem', boxSizing: 'border-box', backgroundColor: '#fafbfd', marginBottom: '14px', fontFamily: 'inherit' },
+  previewBar:   { display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '8px', marginBottom: '18px' },
+  errorBanner:  { backgroundColor: '#fff5f5', border: '1px solid #fcc', color: '#c0392b', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.9rem' },
+  modalActions: { display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center' },
+  saveBtn:      { padding: '10px 22px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '9px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' },
+  cancelBtn:    { padding: '10px 16px', backgroundColor: '#f0f2f5', border: '1px solid #dde', borderRadius: '9px', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' },
+  deleteBtn:    { padding: '10px 14px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '9px', cursor: 'pointer', fontWeight: 700, marginRight: 'auto' },
 };

@@ -1,8 +1,65 @@
-body {
-  background-color: #f1f3f4 !important;
+/* ── Base Reset ──────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
+body {
+  background-color: #f1f3f4 !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Spinner animation (referenced across many components) ────────────────── */
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ── FullCalendar overrides ───────────────────────────────────────────────── */
+.fc {
+  font-family: 'Georgia', serif;
+}
+.fc-daygrid-day:hover {
+  background: #f0f4ff !important;
+  cursor: pointer;
+}
+.fc-daygrid-day-number {
+  font-size: 0.85rem;
+  padding: 6px 8px;
+  text-decoration: none !important;
+}
+.fc-daygrid-day.fc-day-today {
+  background: #fef9f0 !important;
+}
+.fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  background: #2c3e50;
+  color: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fc-col-header-cell-cushion {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-decoration: none !important;
+}
+.fc-event {
+  border-radius: 4px !important;
+  border: none !important;
+  padding: 2px 6px !important;
+  font-size: 0.78rem !important;
+  cursor: pointer !important;
+}
+.fc-theme-standard td,
+.fc-theme-standard th,
+.fc-scrollgrid {
+  border-color: #eef0f3 !important;
+}
+
+/* ── ContextMenu hover state ────────────────────────────────────────────── */
+.context-menu-item:hover {
+  background-color: #f5f5f5;
+}

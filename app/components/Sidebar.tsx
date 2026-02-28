@@ -1,11 +1,12 @@
 
 import React from 'react';
-import { Plus, Star, Copy, Trash2, FileText, Book } from 'lucide-react';
+
+import { Plus, Star, Copy, Trash2, FileText } from 'lucide-react';
 
 // TypeScript-Interfaces für Typensicherheit
 interface Dokument {
   id: string;
-  typ: 'gottesdienst' | 'notiz';
+  typ: 'notiz';
   titel: string;
   isFavorit: boolean;
 }
@@ -14,24 +15,20 @@ interface SidebarProps {
   dokumente: Dokument[];
   aktuelleId: string | null;
   onWähleDokument: (id: string) => void;
-  onNeuGottesdienst: () => void;
   onNeuNotiz: () => void;
   onLöschen: (id: string) => void;
   onKopieren: (id: string) => void;
   onFavorit: (id: string) => void;
-  docType: 'gottesdienst' | 'notiz';
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
     dokumente, 
     aktuelleId, 
     onWähleDokument, 
-    onNeuGottesdienst, 
     onNeuNotiz, 
     onLöschen, 
     onKopieren, 
-    onFavorit,
-    docType
+    onFavorit
 }) => {
 
     const renderDocList = (docs: Dokument[], Icon: React.ElementType) => {
@@ -58,43 +55,23 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
 
     // --- RENDER NOTIZBUCH (ONE-NOTE-STIL) ---
-    if (docType === 'notiz') {
-        return (
-            <div style={styles.sidebarNotiz}>
-                {/* Header */}
-                <div style={styles.notizHeader}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '1.2rem' }}>Digitales Notizbuch</h3>
-                    <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem', opacity: 0.9 }}>
-                        Gedanken, Katechese und Notizen organisieren.
-                    </p>
-                    <button onClick={onNeuNotiz} style={styles.neuSeiteButton}>
-                        <Plus size={18} style={{ marginRight: '8px' }} /> Neue Seite
-                    </button>
-                </div>
-
-                {/* Seiten-Liste */}
-                <ul style={styles.liste}>
-                    {renderDocList(dokumente, FileText)}
-                </ul>
-            </div>
-        );
-    }
-
-    // --- RENDER GOTTESDIENST-PLANER ---
     return (
-        <div style={styles.sidebarGottesdienst}>
-            <div style={styles.neueButtonsContainer}>
-                <button onClick={onNeuGottesdienst} style={styles.neuGottesdienstButton}>
-                    <Plus size={20} style={{ marginRight: '8px' }}/> Neuer Gottesdienst
+        <div style={styles.sidebarNotiz}>
+            {/* Header */}
+            <div style={styles.notizHeader}>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '1.2rem' }}>Digitales Notizbuch</h3>
+                <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem', opacity: 0.9 }}>
+                    Gedanken, Katechese und Notizen organisieren.
+                </p>
+                <button onClick={onNeuNotiz} style={styles.neuSeiteButton}>
+                    <Plus size={18} style={{ marginRight: '8px' }} /> Neue Seite
                 </button>
             </div>
 
-            <div style={styles.section}>
-                <h2 style={styles.h2}><Book size={18} style={{ marginRight: '10px' }} />Gottesdienste</h2>
-                <ul style={styles.liste}>
-                    {renderDocList(dokumente, Book)}
-                </ul>
-            </div>
+            {/* Seiten-Liste */}
+            <ul style={styles.liste}>
+                {renderDocList(dokumente, FileText)}
+            </ul>
         </div>
     );
 };
@@ -150,49 +127,11 @@ const styles: { [key: string]: React.CSSProperties } = {
         transition: 'background-color 0.2s ease',
     },
 
-    // --- Stile für Gottesdienst-Sidebar ---
-    sidebarGottesdienst: {
-        width: '320px',
-        height: '100%',
-        backgroundColor: '#f8f9fa',
-        borderRight: '1px solid #dee2e6',
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-        paddingTop: '24px',
-    },
-    neueButtonsContainer: {
-        marginBottom: '24px',
-        padding: '0 24px',
-    },
-    neuGottesdienstButton: {
-        width: '100%',
-        padding: '12px',
-        backgroundColor: '#007bff',
-        color: 'white',
-        border: 'none',
-        borderRadius: '8px',
-        fontSize: '1rem',
-        cursor: 'pointer',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        fontWeight: '500',
-    },
-    section: {
-        marginBottom: '24px',
-    },
-    h2: {
-        fontSize: '1.1rem',
-        color: '#343a40',
-        margin: '0 0 12px 24px',
-        display: 'flex',
-        alignItems: 'center',
-    },
-
     // --- Stile für Notizbuch-Sidebar (OneNote-Look) ---
     sidebarNotiz: {
-        width: '320px',
+        width: '100%',
+        maxWidth: '320px',
+        minWidth: '240px',
         height: '100%',
         backgroundColor: '#fdfdff',
         borderRight: '1px solid #e1e1e1',
