@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Calendar } from '../utils/types';
 import { subscribeToCalendars, addCalendar, updateCalendar, deleteCalendar } from '../utils/firebase';
 import { useAuth } from '../../AuthContext';
@@ -23,13 +23,13 @@ export const useCalendars = () => {
     return () => unsubscribe();
   }, [user]);
 
-  const openCalModal = (cal: Calendar | null) => {
+  const openCalModal = useCallback((cal: Calendar | null) => {
     setEditingCalendar(cal);
     setCalForm(cal ? { name: cal.name, color: cal.color } : { name: '', color: COLORS[0] });
     setCalModalOpen(true);
-  };
+  }, []);
 
-  const handleSaveCal = async () => {
+  const handleSaveCal = useCallback(async () => {
     if (!user || !calForm.name.trim()) return;
     setIsLoading(true);
     try {
@@ -41,18 +41,18 @@ export const useCalendars = () => {
       }
       setCalModalOpen(false);
     } finally { setIsLoading(false); }
-  };
+  }, [user, calForm, editingCalendar]);
 
-  const handleDeleteCal = async () => {
+  const handleDeleteCal = useCallback(async () => {
     if (!user || !editingCalendar || !confirm(`Kalender "${editingCalendar.name}" und alle Termine löschen?`)) return;
     setIsLoading(true);
     try {
       await deleteCalendar(user.uid, editingCalendar.id);
       setCalModalOpen(false);
     } finally { setIsLoading(false); }
-  };
+  }, [user, editingCalendar]);
 
-  const toggleCalVis = async (id: string) => {
+  const toggleCalVis = useCallback(async (id: string) => {
     if (!user) return;
     const next = !visibleCals[id];
     setVisibleCals(p => ({ ...p, [id]: next }));
@@ -61,7 +61,7 @@ export const useCalendars = () => {
     } catch {
       setVisibleCals(p => ({ ...p, [id]: !next }));
     }
-  };
+  }, [user, visibleCals]);
 
   return {
     calendars,
