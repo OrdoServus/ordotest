@@ -10,7 +10,7 @@ interface Dokument {
   inhalt: string;
   typ: 'notiz';
   isFavorit: boolean;
-  datum: string;
+  datum: any;
 }
 
 interface DashboardProps {
@@ -113,7 +113,7 @@ export default function Dashboard({ dokumente, onNeuNotiz }: DashboardProps) {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-const s: { [key: string]: React.CSSProperties | ((color: string) => React.CSSProperties) } = {
+const s: { [key: string]: any} = {
   container:      { flex: 1, backgroundColor: '#f9f9fb', display: 'flex', flexDirection: 'column', alignItems: 'center' },
   header:         { textAlign: 'center', padding: '50px 20px 30px' },
   h1:             { fontSize: '2.2rem', color: '#2c3e50', margin: '0 0 8px' },
