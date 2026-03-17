@@ -22,7 +22,7 @@ export default function InfoPage() {
           deiner liturgischen Aufgaben und der Organisation deiner pastoralen Gedanken.
         </p>
         <Link href="/login">
-          <button style={ctaButtonStyle}>Jetzt kostenlos starten</button>
+          <button style={ctaButtonStyle}>Jetzt starten</button>
         </Link>
       </header>
 
@@ -38,6 +38,10 @@ export default function InfoPage() {
         <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '40px' }}>Entwickelt für deine Seelsorge</h2>
         <div style={featureGrid}>
           <div style={featureCard}>
+            <h3>👩‍👧‍👦 für Pfarrer, Diakon oder liturgischen Dienst</h3>
+            <p>Die Anwendung ist für dich als Pfarrer, Diakon oder liturgischen Dienst entwickelt und angepasst.</p>
+          </div>
+          <div style={featureCard}>
             <h3>⛪ Liturgische Vorlagen</h3>
             <p>Strukturierte Abläufe für Messen, Andachten und Taufen. Kein "leeres Blatt" mehr bei deiner Vorbereitung.</p>
           </div>
@@ -46,8 +50,8 @@ export default function InfoPage() {
             <p>Einfache Organisation wie in OneNote. Perfekt für deine Katechese, Predigtideen und Gremienarbeit.</p>
           </div>
           <div style={featureCard}>
-            <h3>🔒 Privat & Lokal</h3>
-            <p>Deine Daten gehören dir. OrdoServus speichert alles lokal in deinem Browser – ohne Cloud-Zwang.</p>
+            <h3>📆 Kalender</h3>
+            <p>Plane deine Andachte und verliere den Überblick nicht.</p>
           </div>
         </div>
       </section>
@@ -61,7 +65,7 @@ export default function InfoPage() {
             Es ist ein Open-Source-Projekt, das einfach, schnell und unabhängig funktionieren soll. Wir glauben daran, dass 
             Technologie deine Seelsorge unterstützen kann, ohne Kompromisse bei Datenschutz und Benutzerfreundlichkeit einzugehen. 
             Dieses Produkt haben wir für dich entwickelt, damit du deinen Dienst am Altar und im pastoralen Alltag bestmöglich 
-            gestalten kannst. Es steht dir kostenlos zur Verfügung.
+            gestalten kannst.
           </p>
         </div>
       </section>
