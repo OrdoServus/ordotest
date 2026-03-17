@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, User, LogOut, Gift, Info, HelpCircle, Bug, Github } from 'lucide-react';
+import { MoreVertical, User, LogOut, LogIn, Gift, Info, HelpCircle, Bug, Github } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '../AuthContext';
 
@@ -9,7 +9,7 @@ const ProfileMenu: React.FC = () => {
   const [version, setVersion] = useState('…');
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef   = useRef<HTMLDivElement>(null);
-  const { logout, userProfile } = useAuth();
+  const { logout, user, userProfile } = useAuth();
 
   useEffect(() => {
     fetch('https://api.github.com/repos/ordoservus/ordoservus/releases/latest')
@@ -108,9 +108,15 @@ const ProfileMenu: React.FC = () => {
               <Bug size={15} /> Fehler melden
             </Link>
             <div style={styles.separator} />
-            <button onClick={async () => { close(); await logout(); }} style={styles.logoutItem}>
-              <LogOut size={15} /> Abmelden
-            </button>
+            {user ? (
+              <button onClick={async () => { close(); await logout(); }} style={styles.logoutItem}>
+                <LogOut size={15} /> Abmelden
+              </button>
+            ) : (
+              <Link href="/login" style={styles.item} onClick={close}>
+                <Login size={15} /> Anmelden
+              </Link>
+            )}
           </div>
 
           {/* Footer */}
