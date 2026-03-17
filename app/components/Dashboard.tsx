@@ -21,8 +21,6 @@ interface DashboardProps {
 export default function Dashboard({ dokumente, onNeuNotiz }: DashboardProps) {
   const { userProfile } = useAuth();
 
-  const notizenCount = dokumente.filter(d => d.typ === 'notiz').length;
-
   const greeting = () => {
     const h = new Date().getHours();
     if (h < 12) return 'Guten Morgen';
@@ -64,7 +62,6 @@ export default function Dashboard({ dokumente, onNeuNotiz }: DashboardProps) {
           <div style={s.cardIcon}>📓</div>
           <h2 style={{ ...s.cardTitle, color: '#80397B' }}>Digitales Notizbuch</h2>
           <p style={s.cardText}>Gedanken, Katechese und Verwaltungsnotizen – alles an einem Ort.</p>
-          <span style={s.badge}>{notizenCount} Seite{notizenCount !== 1 ? 'n' : ''}</span>
           <button
             style={s.btn('#80397B')}
             onClick={e => { e.stopPropagation(); onNeuNotiz(); }}
