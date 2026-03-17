@@ -13,81 +13,86 @@ export default function DatenschutzPage() {
         </nav>
         <main style={styles.main}>
             <header style={styles.header}>
-                <h1>Datenschutzerklärung</h1>
+                <h1>Datenschutzbestimmungen für OrdoServus</h1>
+                <p><em>Stand: 15. Oktober 2024</em></p>
             </header>
             <section style={styles.content}>
                 <div style={styles.section}>
-                    <h2 style={styles.h2}>1. Verantwortliche Stelle</h2>
+                    <h2 style={styles.h2}>📌 1. Verantwortliche Stelle</h2>
                     <p>
-                        OrdoServus ist ein privates Open-Source-Projekt. Die Verantwortung für den Datenschutz liegt bei dir, 
-                        wenn du diese Software auf einem eigenen Server betreibst.
+                        Verantwortlich für die Datenbearbeitung ist:
                     </p>
+                    <p><strong>Florian Huser</strong><br/>
+                    florian@ordoservus.ch</p>
+                    <p>Bei Fragen zum Datenschutz jederzeit kontaktierbar.</p>
                 </div>
 
                 <div style={styles.section}>
-                    <h2 style={styles.h2}>2. Allgemeines zur Datenverarbeitung</h2>
-                    <p>
-                        Deine personenbezogenen Daten werden im Einklang mit dem Schweizer Datenschutzgesetz (revDSG) verarbeitet.
-                        Du kannst die Web-Software grundsätzlich ohne Angabe personenbezogener Daten nutzen. 
-                        Wenn Daten erhoben werden, erfolgt dies nur im technisch notwendigen Umfang oder aufgrund deiner freiwilligen Angaben.
-                    </p>
-                </div>
-
-                <div style={styles.section}>
-                  <h2 style={styles.h2}>3. Erhebung und Zweck der Datenverarbeitung</h2>
-                  <p>Personenbezogene Daten werden insbesondere für folgende Zwecke verarbeitet:</p>
-                  <ul style={styles.ul}>
-                    <li>Bereitstellung und Betrieb der Web-Software</li>
-                    <li>Kommunikation mit dir bei optionaler Account-Erstellung</li>
-                    <li>Sicherstellung der Systemsicherheit und -stabilität</li>
-                  </ul>
-                </div>
-
-                <div style={styles.section}>
-                    <h2 style={styles.h2}>4. Server-Log-Daten</h2>
-                    <p>
-                        Beim Zugriff auf die Web-Software werden automatisch technische Daten 
-                        erfasst, darunter deine IP-Adresse, Datum und Uhrzeit, Browsertyp und Betriebssystem. 
-                        Diese Daten dienen der Sicherstellung des technischen Betriebs.
-                    </p>
-                </div>
-
-                <div style={styles.section}>
-                    <h2 style={styles.h2}>5. Cookies und Lokaler Speicher</h2>
-                    <p>
-                        Die Web-Software verwendet den lokalen Speicher (Local Storage) deines Browsers, 
-                        um deine Dokumente und Einstellungen direkt auf deinem Gerät zu sichern. 
-                        Es werden nur technisch notwendige Cookies für die Login-Funktion (Supabase) verwendet.
-                    </p>
-                </div>
-
-                <div style={styles.section}>
-                    <h2 style={styles.h2}>6. Weitergabe von Daten</h2>
-                    <p>
-                        Eine Weitergabe deiner personenbezogenen Daten findet nicht statt. 
-                        Wenn du die Cloud-Funktion nutzt, werden deine Daten verschlüsselt an 
-                        Supabase übertragen, aber nicht an Dritte weitergegeben.
-                    </p>
-                </div>
-
-                <div style={styles.section}>
-                    <h2 style={styles.h2}>7. Deine Rechte</h2>
-                    <p>Du hast im Rahmen des revDSG insbesondere folgende Rechte:</p>
+                    <h2 style={styles.h2}>🔍 2. Zweck der Datenbearbeitung</h2>
+                    <p>OrdoServus unterstützt pastorale/liturgische Tätigkeiten. Datenverarbeitung für:</p>
                     <ul style={styles.ul}>
-                        <li>Auskunft über die verarbeiteten personenbezogenen Daten</li>
-                        <li>Berichtigung unrichtiger Daten</li>
-                        <li>Löschung deiner Daten (bei Nutzung der Cloud-Funktion in den Einstellungen möglich)</li>
-                        <li>Widerspruch gegen bestimmte Datenverarbeitungen</li>
+                        <li>Bereitstellung/Betrieb</li>
+                        <li>Benutzerkonten-Verwaltung</li>
+                        <li>Notizen/Vorlagen/Kalender</li>
+                        <li>Fehleranalyse/Verbesserung</li>
+                        <li>Sicherheit/Stabilität</li>
                     </ul>
                 </div>
 
                 <div style={styles.section}>
-                    <h2 style={styles.h2}>8. Änderungen dieser Datenschutzerklärung</h2>
-                    <p>
-                        Diese Datenschutzerklärung kann jederzeit angepasst werden. 
-                        Es gilt die jeweils aktuelle Version, die in der Web-Software abrufbar ist. <br/>
-                        Letzte Aktualisierung: {new Date().toLocaleDateString('de-DE')}
-                    </p>
+                    <h2 style={styles.h2}>🧑‍💻 3. Erhobene Daten</h2>
+                    <p><strong>3.1 Eingaben:</strong> Name, E-Mail, Notizbuch-Inhalte, Kalender, Vorlagen.</p>
+                    <p><strong>3.2 Auto:</strong> IP, Browser, Datum/Uhrzeit, Gerät, Fehlerberichte.</p>
+                </div>
+
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>☁️ 4. Hosting/Dienste</h2>
+                    <p><strong>Vercel:</strong> Hosting, IP/Logs. Server EU/USA. <a href="https://vercel.com/legal/datenschutzerklaerung" target="_blank">Vercel DSE</a></p>
+                    <p><strong>Firebase (Google):</strong> Auth, Firestore. EU/USA, DSGVO-konform.</p>
+                </div>
+
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>🔐 5. Sicherheit</h2>
+                    <ul style={styles.ul}>
+                        <li>HTTPS/TLS-Verschlüsselung</li>
+                        <li>Firebase Server-Encryption</li>
+                        <li>Kein Zugriff Dritter</li>
+                    </ul>
+                </div>
+
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>🛑 6. Keine Weitergabe</h2>
+                    <p>Nur mit Zustimmung oder gesetzlich. Kein Marketing/Tracking.</p>
+                </div>
+
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>🧽 7. Löschung</h2>
+                    <p>Inhalte/Konto löschen → Daten entfernt (außer gesetzlich).</p>
+                </div>
+
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>🧑‍⚖️ 8. Rechte (revDSG/DSGVO)</h2>
+                    <p>Auskunft, Berichtigung, Löschung, Portabilität. Kontakt: florian@ordoservus.ch</p>
+                </div>
+
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>🍪 9. Cookies</h2>
+                    <p>Nur technische (Login/Sicherheit). Kein Tracking.</p>
+                </div>
+
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>🔗 10. Externe Links</h2>
+                    <p>Keine Verantwortung für externe Datenschutz.</p>
+                </div>
+
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>🛠️ 11. Änderungen</h2>
+                    <p>Aktuelle Version hier. Wesentliche Änderungen angekündigt.</p>
+                </div>
+
+                <div style={styles.section}>
+                    <h2 style={styles.h2}>📬 12. Kontakt</h2>
+                    <p><strong>Florian Huser</strong><br/>florian@ordoservus.ch</p>
                 </div>
             </section>
         </main>
