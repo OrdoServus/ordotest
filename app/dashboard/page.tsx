@@ -51,7 +51,7 @@ export default function DashboardPage() {
       typ: typ,
     };
     const docRef = await addDoc(collection(db, 'users', user.uid, 'dokumente'), neu);
-    router.push(`/notizen?doc=${docRef.id}`);
+router.push(`/notes?doc=${docRef.id}`);
   };
 
   if (loading) {

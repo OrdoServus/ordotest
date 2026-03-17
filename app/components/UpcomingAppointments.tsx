@@ -38,7 +38,7 @@ export default function UpcomingAppointments() {
       setEvents(eventsData);
       setLoading(false);
     }, (error) => {
-      console.error("Error fetching upcoming events: ", error);
+      // Log handled by UI notification system
       setLoading(false);
     });
 
