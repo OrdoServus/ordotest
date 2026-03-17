@@ -1,7 +1,7 @@
 
 import React from 'react';
 import Navbar from './components/Navbar';
-import { AuthProvider } from './AuthContext'; // Importiere den AuthProvider
+import { AuthProvider } from './AuthContext';
 
 export const metadata = {
   title: 'OrdoServus',

@@ -16,7 +16,7 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   loading: boolean;
   refreshUserProfile: () => Promise<void>;
-  logout: () => Promise<void>; // ← war bisher nicht exportiert, ProfileMenu braucht es
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
