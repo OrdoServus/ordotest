@@ -250,11 +250,11 @@ export default function NotizenPage() {
   const activeNotebook = useMemo(() => notebooks.find(n => n.id === activeNotebookId), [notebooks, activeNotebookId]);
   const saveLabel = useMemo(() => {
     switch (saveStatus) {
-      case 'pending': return { text: '● Unspeicherte Änderungen', color: '#e67e22', icon: '●' };
-      case 'saving':  return { text: '💾 Wird gespeichert...', color: '#3498db', icon: '💾' };
-      case 'saved':   return { text: '✓ Alles gespeichert', color: '#27ae60', icon: '✓' };
-      case 'error':   return { text: '✗ Speicherfehler', color: '#e74c3c', icon: '✗' };
-      default:        return { text: '✓ Gespeichert', color: '#27ae60', icon: '✓' };
+      case 'pending': return { text: 'Unspeicherte Änderungen', color: '#e67e22', icon: '●' };
+      case 'saving':  return { text: 'Wird gespeichert...', color: '#3498db', icon: '💾' };
+      case 'saved':   return { text: 'Alles gespeichert', color: '#27ae60', icon: '✓' };
+      case 'error':   return { text: 'Speicherfehler', color: '#e74c3c', icon: '✗' };
+      default:        return { text: 'Gespeichert', color: '#27ae60', icon: '✓' };
     }
   }, [saveStatus]);
 
