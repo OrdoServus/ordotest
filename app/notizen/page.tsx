@@ -250,11 +250,11 @@ export default function NotizenPage() {
   const activeNotebook = useMemo(() => notebooks.find(n => n.id === activeNotebookId), [notebooks, activeNotebookId]);
   const saveLabel = useMemo(() => {
     switch (saveStatus) {
-      case 'pending': return { text: 'Änderungen erkannt', color: '#e67e22' };
-      case 'saving':  return { text: 'Wird gespeichert…', color: '#3498db' };
-      case 'saved':   return { text: '✓ Gespeichert', color: '#27ae60' };
-      case 'error':   return { text: '✗ Fehler', color: '#e74c3c' };
-      default:        return null;
+      case 'pending': return { text: '● Unspeicherte Änderungen', color: '#e67e22', icon: '●' };
+      case 'saving':  return { text: '💾 Wird gespeichert...', color: '#3498db', icon: '💾' };
+      case 'saved':   return { text: '✓ Alles gespeichert', color: '#27ae60', icon: '✓' };
+      case 'error':   return { text: '✗ Speicherfehler', color: '#e74c3c', icon: '✗' };
+      default:        return { text: '✓ Gespeichert', color: '#27ae60', icon: '✓' };
     }
   }, [saveStatus]);
 
@@ -263,8 +263,12 @@ export default function NotizenPage() {
     if (activePageId && activePage) {
       return (
         <div style={{flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
-          <div style={{padding: '10px 20px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', borderBottom: '1px solid #eee', flexShrink: 0}}>
-            {saveLabel && <span style={{color: saveLabel.color, fontSize: '0.85em'}}>{saveLabel.text}</span>}
+          <div style={{padding: '16px 24px', background: '#f8f9fa', borderBottom: '2px solid #e9ecef', flexShrink: 0, boxShadow: '0 2px 4px rgba(0,0,0,0.05)'}}>
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', fontWeight: 500}}>
+              <span style={{color: saveLabel.color, fontSize: '1rem', padding: '6px 12px', background: `${saveLabel.color}20`, borderRadius: '20px', minWidth: '160px', textAlign: 'center'}}>
+                {saveLabel.icon} {saveLabel.text}
+              </span>
+            </div>
           </div>
           <div style={{overflowY: 'auto', flex: 1, padding: '20px 40px'}}>
             <input 

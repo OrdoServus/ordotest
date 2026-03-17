@@ -55,7 +55,7 @@ export default function ProfilePage() {
         if (formData.phoneNumber && formData.phoneNumber.trim() !== '') {
           const phoneRegex = /^[\+]?[1-9][0-9\s\-\(\)]{6,18}$/;
           if (!phoneRegex.test(formData.phoneNumber.trim())) {
-            setError('Ungültige Telefonnummer. Verwenden Sie z.B. +49123456789, 01712345678 oder 0123456789.');
+            setError('Ungültige Telefonnummer. Verwenden Sie z.B. +41123456789.');
             setIsUpdating(false);
             return;
           }
