@@ -27,6 +27,7 @@ const ERRORS: Record<string, string> = {
   'validation/invalid-phone':   'Bitte eine gültige Telefonnummer eingeben.',
   'validation/missing-fields':  'Bitte alle Pflichtfelder ausfüllen.',
   'validation/legal-not-accepted': 'Bitte AGB und Datenschutz akzeptieren.',
+  'validation/liturgical-not-confirmed': 'Bitte bestätige deine Tätigkeit im liturgischen Dienst.',
   'validation/too-young':       'Du musst mindestens 16 Jahre alt sein.',
   'auth/username-taken':        'Dieser Benutzername ist bereits vergeben.',
 };
@@ -63,9 +64,10 @@ export default function LoginPage() {
   const [parish,         setParish]         = useState('');
   const [country,        setCountry]        = useState('');
   const [howHeard,       setHowHeard]       = useState('');
-  const [role,           setRole]           = useState('');
-  const [termsOk,        setTermsOk]        = useState(false);
-  const [privacyOk,      setPrivacyOk]      = useState(false);
+const [role,              setRole]              = useState('');
+  const [liturgicalConfirm, setLiturgicalConfirm] = useState(false);
+  const [termsOk,           setTermsOk]           = useState(false);
+  const [privacyOk,         setPrivacyOk]         = useState(false);
   const [error,          setError]          = useState<string | null>(null);
   const [success,        setSuccess]        = useState<string | null>(null);
   const [isLoading,      setIsLoading]      = useState(false);
@@ -113,6 +115,7 @@ export default function LoginPage() {
         // Validation
         if (![firstName, lastName, username, birthdate, parish, country, howHeard, role].every(Boolean))
           throw { code: 'validation/missing-fields' };
+        if (!liturgicalConfirm) throw { code: 'validation/liturgical-not-confirmed' };
         if (!termsOk || !privacyOk) throw { code: 'validation/legal-not-accepted' };
         if (password !== confirmPw)  throw { code: 'validation/password-mismatch' };
         if (!isValidPassword(password)) throw { code: 'validation/password-requirements' };
@@ -249,6 +252,13 @@ export default function LoginPage() {
                 </select>
 
                 <div style={st.checkRow}>
+                  <input type="checkbox" id="liturgical" checked={liturgicalConfirm} onChange={e => setLiturgicalConfirm(e.target.checked)} />
+                  <label htmlFor="liturgical" style={st.checkLabel}>
+                    Ich bestätige, dass ich Pfarrer, Diakon oder im liturgischen Dienst tätig bin *
+                  </label>
+                </div>
+
+                <div style={st.checkRow}>
                   <input type="checkbox" id="terms" checked={termsOk} onChange={e => setTermsOk(e.target.checked)} />
                   <label htmlFor="terms" style={st.checkLabel}>
                     Ich akzeptiere die <Link href="/info/legal/impressum" target="_blank" style={st.checkLink}>Nutzungsbedingungen</Link>.
@@ -265,8 +275,8 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              style={{ ...st.btnPrimary, ...( (isLoading || (!isLogin && (!termsOk || !privacyOk))) ? st.btnDisabled : {}) }}
-              disabled={isLoading || (!isLogin && (!termsOk || !privacyOk))}
+              style={{ ...st.btnPrimary, ...( (isLoading || (!isLogin && (!liturgicalConfirm || !termsOk || !privacyOk))) ? st.btnDisabled : {}) }}
+              disabled={isLoading || (!isLogin && (!liturgicalConfirm || !termsOk || !privacyOk))}
             >
               {isLoading
                 ? (isLogin ? 'Wird angemeldet…' : 'Wird registriert…')
