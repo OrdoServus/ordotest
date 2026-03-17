@@ -14,7 +14,7 @@ export default function DatenschutzPage() {
         <main style={styles.main}>
             <header style={styles.header}>
                 <h1>Datenschutzbestimmungen für OrdoServus</h1>
-                <p><em>Stand: 15. Oktober 2024</em></p>
+                <p><em>Stand: März 2026</em></p>
             </header>
             <section style={styles.content}>
                 <div style={styles.section}>
@@ -22,8 +22,7 @@ export default function DatenschutzPage() {
                     <p>
                         Verantwortlich für die Datenbearbeitung ist:
                     </p>
-                    <p><strong>Florian Huser</strong><br/>
-                    florian@ordoservus.ch</p>
+                    <p>ordo.servus@gmx.ch</p>
                     <p>Bei Fragen zum Datenschutz jederzeit kontaktierbar.</p>
                 </div>
 
@@ -67,12 +66,12 @@ export default function DatenschutzPage() {
 
                 <div style={styles.section}>
                     <h2 style={styles.h2}>🧽 7. Löschung</h2>
-                    <p>Inhalte/Konto löschen → Daten entfernt (außer gesetzlich).</p>
+                    <p>Inhalte/Konto löschen → Daten entfernt (ausser gesetzlich).</p>
                 </div>
 
                 <div style={styles.section}>
                     <h2 style={styles.h2}>🧑‍⚖️ 8. Rechte (revDSG/DSGVO)</h2>
-                    <p>Auskunft, Berichtigung, Löschung, Portabilität. Kontakt: florian@ordoservus.ch</p>
+                    <p>Auskunft, Berichtigung, Löschung, Portabilität. Kontakt: ordo.servus@gmx.ch</p>
                 </div>
 
                 <div style={styles.section}>
@@ -92,7 +91,7 @@ export default function DatenschutzPage() {
 
                 <div style={styles.section}>
                     <h2 style={styles.h2}>📬 12. Kontakt</h2>
-                    <p><strong>Florian Huser</strong><br/>florian@ordoservus.ch</p>
+                    <p>Siehe Kontaktseite</p>
                 </div>
             </section>
         </main>

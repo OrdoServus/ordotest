@@ -19,7 +19,8 @@ export default function ImpressumPage() {
                     <h2 style={styles.h2}>Verantwortung</h2>
                     <p>
                         OrdoServus ist ein nicht-kommerzielles Open-Source-Projekt.
-                        Die Verantwortung für auf einem Server betriebene Instanzen liegt bei dir, wenn du den Server administrierst.
+                          Es wird von einer Gemeinschaft von Freiwilligen entwickelt und gepflegt, die sich der Unterstützung pastoraler und liturgischer Tätigkeiten verschrieben haben.
+                          Für Kontakt und weitere Informationen siehe die Kontakt-Seite.
                     </p>
                      <p style={{ marginTop: 10 }}>
                         Das Projekt wird auf GitHub von einer Gemeinschaft von Freiwilligen entwickelt. 
