@@ -1,0 +1,17 @@
+
+{
+  "name": "OrdoServus",
+  "short_name": "OrdoServus",
+  "description": "Ihr digitaler Assistent für die Gottesdienst-Planung und pastorale Notizen.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2c3e50",
+  "theme_color": "#2c3e50",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

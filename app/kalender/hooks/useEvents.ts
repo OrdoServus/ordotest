@@ -1,0 +1,186 @@
+import { useState, useEffect, useCallback } from 'react';
+import { CalEvent, EventForm } from '../utils/types';
+import { addEvent, updateEvent, deleteEvent, subscribeToEvents } from '../utils/firebase';
+import { useAuth } from '../../AuthContext';
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+const EMPTY_FORM = (calendars: any[]): EventForm => ({
+  calendarId: calendars.find(c => c.visible)?.id ?? '',
+  title: '',
+  start: todayStr(),
+  end: todayStr(),
+  startTime: '09:00',
+  endTime: '10:00',
+  color: calendars.find(c => c.visible)?.color ?? '#2c3e50',
+  category: 'termin',
+  description: '',
+  location: '',
+  allDay: true,
+  url: '',
+  reminder: '',
+  recurrence: { enabled: false, freq: 'weekly', interval: 1, until: '' },
+});
+
+export const useEvents = (calendars: any[]) => {
+  const { user } = useAuth();
+  const [events, setEvents] = useState<CalEvent[]>([]);
+  const [eventModalOpen, setEventModalOpen] = useState(false);
+  const [eventForm, setEventForm] = useState<EventForm | null>(null);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribe = subscribeToEvents(user.uid, setEvents);
+    return () => unsubscribe();
+  }, [user]);
+
+  const openCreate = useCallback((dateStr?: string) => {
+    setEditingEventId(null);
+    setEventForm({
+      ...EMPTY_FORM(calendars),
+      start: dateStr ?? todayStr(),
+      end: dateStr ?? todayStr(),
+    });
+    setFormError(null);
+    setEventModalOpen(true);
+  }, [calendars]);
+
+  const openEdit = useCallback((ev: CalEvent) => {
+    setEditingEventId(ev.id);
+    setEventForm({
+      calendarId:  ev.calendarId,
+      title:       ev.title,
+      start:       ev.start.slice(0, 10),
+      end:         ev.end ? ev.end.slice(0, 10) : ev.start.slice(0, 10),
+      startTime:   ev.start.length > 10 ? ev.start.slice(11, 16) : '09:00',
+      endTime:     ev.end && ev.end.length > 10 ? ev.end.slice(11, 16) : '10:00',
+      color:       ev.color,
+      category:    ev.category ?? 'termin',
+      description: ev.description ?? '',
+      location:    ev.location ?? '',
+      allDay:      ev.allDay ?? true,
+      url:         ev.url ?? '',
+      reminder:    ev.reminder != null ? String(ev.reminder) : '',
+      recurrence:  ev.recurrence
+        ? { enabled: true, freq: ev.recurrence.freq, interval: ev.recurrence.interval, until: ev.recurrence.until ?? '' }
+        : { enabled: false, freq: 'weekly', interval: 1, until: '' },
+    });
+    setFormError(null);
+    setEventModalOpen(true);
+  }, []);
+
+  const handleFormChange = useCallback(( 
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> 
+  ) => { 
+    const { name, value, type } = e.target; 
+    const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value; 
+ 
+    setEventForm(prev => { 
+      if (!prev) return prev; 
+ 
+      const updated = { ...prev, [name]: val }; 
+ 
+      if (name === 'calendarId') { 
+        const cal = calendars.find(c => c.id === value); 
+        if (cal) updated.color = cal.color; 
+      } 
+ 
+      if (name === 'start' && updated.end < String(val)) { 
+        updated.end = String(val); 
+      } 
+
+      if (name === 'end' && updated.start > String(val)) {
+        updated.start = String(val);
+      }
+ 
+      return updated; 
+    }); 
+  }, [calendars]);
+
+  const handleRecurrenceChange = useCallback((field: string, value: any) => {
+    setEventForm(prev => prev ? {
+      ...prev,
+      recurrence: { ...prev.recurrence, [field]: value }
+    } : prev);
+  }, []);
+
+  const handleSaveEvent = useCallback(async () => {
+    if (!user || !eventForm) return;
+    if (!eventForm.title.trim()) return setFormError('Bitte einen Titel eingeben.');
+    if (!eventForm.start) return setFormError('Bitte ein Startdatum wählen.');
+    if (!eventForm.calendarId) return setFormError('Bitte einen Kalender auswählen.');
+
+    setIsLoading(true);
+    setFormError(null);
+    try {
+      const payload: Omit<CalEvent, 'id'> = {
+        calendarId:  eventForm.calendarId,
+        title:       eventForm.title.trim(),
+        start:       eventForm.allDay ? eventForm.start : `${eventForm.start}T${eventForm.startTime}`,
+        end:         eventForm.end && eventForm.end !== eventForm.start
+          ? (eventForm.allDay ? eventForm.end : `${eventForm.end}T${eventForm.endTime}`)
+          : null,
+        color:       eventForm.color,
+        category:    eventForm.category,
+        description: eventForm.description.trim(),
+        location:    eventForm.location.trim(),
+        allDay:      eventForm.allDay,
+        url:         eventForm.url.trim() || undefined,
+        reminder:    eventForm.reminder ? Number(eventForm.reminder) : null,
+        recurrence:  eventForm.recurrence.enabled ? {
+          freq:     eventForm.recurrence.freq,
+          interval: eventForm.recurrence.interval,
+          until:    eventForm.recurrence.until || undefined,
+        } : null,
+        updatedAt:   new Date().toISOString(),
+      };
+
+      if (editingEventId) {
+        await updateEvent(user.uid, editingEventId, payload);
+      } else {
+        await addEvent(user.uid, { ...payload, createdAt: new Date().toISOString() });
+      }
+      setEventModalOpen(false);
+      setEventForm(null);
+      setEditingEventId(null);
+    } catch (err) {
+      console.error(err);
+      setFormError('Fehler beim Speichern. Bitte erneut versuchen.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, eventForm, editingEventId]);
+
+  const handleDeleteEvent = useCallback(async () => {
+    if (!user || !editingEventId || !confirm('Termin wirklich löschen?')) return;
+    setIsLoading(true);
+    try {
+      await deleteEvent(user.uid, editingEventId);
+      setEventModalOpen(false);
+      setEditingEventId(null);
+    } catch {
+      setFormError('Fehler beim Löschen.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, editingEventId]);
+
+  return {
+    events,
+    eventModalOpen,
+    eventForm,
+    editingEventId,
+    formError,
+    isLoading,
+    setEventModalOpen,
+    openCreate,
+    openEdit,
+    handleFormChange,
+    handleRecurrenceChange,
+    handleSaveEvent,
+    handleDeleteEvent,
+  };
+};

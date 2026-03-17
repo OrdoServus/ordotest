@@ -19,7 +19,8 @@ const getFirebaseConfig = () => {
     .map(([key]) => key);
 
   if (missingVars.length > 0) {
-    // Missing env vars - use UI notification in production
+    console.error('❌ Fehlende Firebase Umgebungsvariablen:', missingVars.join(', '));
+    console.error('Bitte .env.local Datei mit Firebase Konfiguration erstellen.');
   }
 
   return config;
