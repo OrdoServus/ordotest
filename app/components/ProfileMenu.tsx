@@ -114,7 +114,7 @@ const ProfileMenu: React.FC = () => {
               </button>
             ) : (
               <Link href="/login" style={styles.item} onClick={close}>
-                <Login size={15} /> Anmelden
+                <LogIn size={15} /> Anmelden
               </Link>
             )}
           </div>
