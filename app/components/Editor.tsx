@@ -2,20 +2,6 @@
 import React, { useEffect, useRef } from 'react';
 import EditorJS, { OutputData } from '@editorjs/editorjs';
 
-// Tools importieren
-// @ts-expect-error EditorJS plugin package has no proper TS default export typings
-import Header from '@editorjs/header';
-// @ts-expect-error EditorJS plugin package has no proper TS default export typings
-import List from '@editorjs/list';
-// @ts-expect-error EditorJS plugin package has no proper TS default export typings
-import Quote from '@editorjs/quote';
-// @ts-expect-error EditorJS plugin package has no proper TS default export typings
-import Delimiter from '@editorjs/delimiter';
-// @ts-expect-error EditorJS plugin package has no proper TS default export typings
-import Table from '@editorjs/table';
-// @ts-expect-error EditorJS plugin package has no proper TS default export typings
-import Marker from '@editorjs/marker';
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface EditorProps {
@@ -49,16 +35,6 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, documentId }) => {
     const editor = new EditorJS({
       holder: holderRef.current,
       placeholder: 'Schreibe hier oder wähle eine Vorlage…',
-      
-      // Tools konfigurieren
-      tools: {
-        header: { class: Header, config: { levels: [1, 2, 3, 4], defaultLevel: 2 }, inlineToolbar: true },
-        list:      { class: List,      inlineToolbar: true },
-        quote:     { class: Quote,     inlineToolbar: true },
-        delimiter: Delimiter,
-        table:     { class: Table,     inlineToolbar: true },
-        marker:    { class: Marker,    shortcut: 'CMD+SHIFT+M' }, // NEU: Leuchtstift hinzufügen
-      },
 
       data: value && value.blocks && value.blocks.length > 0 ? value : EMPTY_DATA,
 
@@ -196,6 +172,15 @@ const editorStyles = `
   .ce-inline-toolbar .ce-inline-tool[data-tool="marker"] {
       width: 34px;
       height: 34px;
+  }
+  .codex-editor__redactor {
+    padding-bottom: 0 !important;
+  }
+  .ce-paragraph[data-placeholder]:empty::after {
+    display: none;
+  }
+  .ce-paragraph[data-placeholder]:first-child:empty::after {
+    display: block;
   }
   mark.cdx-marker {
       background-color: rgba(245, 235, 111, 0.29);

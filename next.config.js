@@ -9,6 +9,7 @@ const withPWA = require('next-pwa')({
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  turbopack: {},
   async headers() {
     return [
       {

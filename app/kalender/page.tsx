@@ -4,8 +4,8 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
-import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction';
-import { EventClickArg, EventDropArg, EventInput, EventResizeDoneArg, DateSelectArg, EventMountArg } from '@fullcalendar/core';
+import interactionPlugin, { DateClickArg, EventResizeDoneArg } from '@fullcalendar/interaction';
+import { EventClickArg, EventDropArg, EventInput, DateSelectArg, EventMountArg, DatesSetArg } from '@fullcalendar/core';
 import { useCalendars } from './hooks/useCalendar';
 import { useEvents } from './hooks/useEvents';
 import { ViewMode, CATEGORIES } from './utils/types';
@@ -302,7 +302,7 @@ function EventPopover({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '14px' }}>
         {cal && (
           <div style={{ fontSize: '0.78rem', color: '#6B7280' }}>
-            <span style={{ color: cal.color, fontWeight: 600 }}>●</span> {cal.name}
+            <span style={{ color: cal.color || '#808080', fontWeight: 600 }}>●</span> {cal.name}
           </div>
         )}
         {cat && (
@@ -397,8 +397,8 @@ export default function KalenderPage() {
     return () => window.removeEventListener('keydown', handler);
   }, [openCreate, eventModalOpen, calModalOpen, goToday, goPrev, goNext, changeView]);
 
-  const updateTitle = useCallback(() => {
-    if (calRef.current) setCurrentTitle(calRef.current.getApi().getCurrentData().viewTitle);
+  const updateTitle = useCallback((dateInfo: DatesSetArg) => {
+    setCurrentTitle(dateInfo.view.title);
   }, []);
 
   const handleDateClick = useCallback((arg: DateClickArg) => {
@@ -472,8 +472,8 @@ export default function KalenderPage() {
     id:              e.id,
     title:           e.title,
     start:           e.start,
-    end:             e.end,
-    backgroundColor: e.color,
+    end:             e.end || undefined,
+    backgroundColor: calendars.find(c => c.id === e.calendarId)?.color || '#7B3B6E',
     borderColor:     'transparent',
     allDay:          e.allDay ?? true,
     extendedProps: {
@@ -484,7 +484,7 @@ export default function KalenderPage() {
       url:         e.url,
       recurrence:  e.recurrence,
     },
-  })), [filteredEvents]);
+  })), [filteredEvents, calendars]);
 
   const popoverEvent = popover ? events.find(e => e.id === popover.event.id) : null;
 

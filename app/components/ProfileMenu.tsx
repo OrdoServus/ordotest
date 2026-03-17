@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { MoreVertical, User, LogOut, Gift, Info, HelpCircle, Bug, Github } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '../AuthContext';
@@ -18,7 +18,7 @@ const ProfileMenu: React.FC = () => {
       .catch(() => setVersion('N/A'));
   }, []);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!isOpen || !menuRef.current || !buttonRef.current) return;
     const btn  = buttonRef.current.getBoundingClientRect();
     const menu = menuRef.current;
