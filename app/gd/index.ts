@@ -10,6 +10,7 @@ import {
   onSnapshot, type Unsubscribe,
 } from 'firebase/firestore'
 import { db } from '../firebase/firebaseClient'
+import type { ServiceBlock, UserRole } from '../types'
 export type Service = {
   id: string
   orgId: string
@@ -18,14 +19,6 @@ export type Service = {
   createdAt: Date
   updatedAt: Date
 }
-
-export type ServiceBlock = {
-  id: string
-  position: number
-  visibleRoles: UserRole[]
-}
-
-export type UserRole = 'admin' | 'editor' | 'viewer'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
