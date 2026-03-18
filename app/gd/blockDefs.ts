@@ -1,4 +1,4 @@
-import type { BlockDef, BlockType } from '../types'
+import type { BlockDef, BlockType, UserRole } from '../types'
 
 export const BLOCK_DEFS: Record<BlockType, BlockDef> = {
   lied: {
