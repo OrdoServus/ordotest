@@ -8,6 +8,23 @@ export interface ServiceBlock {
   updatedAt?: any
 }
 
+export interface ServiceData {
+  title: string
+  date: string
+  location?: string
+}
+
+export interface Service extends ServiceData {
+  id: string
+  orgId: string
+  createdBy: string
+  status: 'draft' | 'published'
+  createdAt: Date
+  updatedAt: Date
+}
+
+
+
 export type BlockType = 'lied' | 'lesung' | 'predigt' | 'gebet' | 'ritual' | 'text'
 
 export type UserRole = 'pfarrer' | 'organist' | 'sakristan' | 'lektor' | 'gemeinde'

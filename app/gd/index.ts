@@ -10,15 +10,7 @@ import {
   onSnapshot, type Unsubscribe,
 } from 'firebase/firestore'
 import { db } from '../firebase/firebaseClient'
-import type { ServiceBlock, UserRole } from '../types'
-export type Service = {
-  id: string
-  orgId: string
-  createdBy: string
-  status: 'draft' | 'published'
-  createdAt: Date
-  updatedAt: Date
-}
+import type { Service, ServiceBlock, ServiceData, UserRole } from '../types'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -45,7 +37,7 @@ export async function getService(orgId: string, serviceId: string): Promise<Serv
 export async function createService(
   orgId: string,
   createdBy: string,
-  data: Omit<Service, 'id' | 'orgId' | 'createdBy'>
+  data: ServiceData
 ): Promise<string> {
   const ref = await addDoc(servicesCol(orgId), {
     ...data,
@@ -57,6 +49,7 @@ export async function createService(
   })
   return ref.id
 }
+
 
 export async function updateService(
   orgId: string,
@@ -127,8 +120,41 @@ export async function reorderBlocks(
   await batch.commit()
 }
 
+// ─── Organizations ─────────────────────────────────────────────────────────────
+
+export type Org = {
+  id: string
+  userId: string
+  name: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+const userOrgsCol = (userId: string) =>
+  collection(db, 'users', userId, 'organizations')
+
+export async function getUserOrgs(userId: string): Promise<Org[]> {
+  const q = query(userOrgsCol(userId), orderBy('createdAt', 'desc'))
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Org))
+}
+
+export async function createOrg(
+  userId: string,
+  name: string
+): Promise<string> {
+  const ref = await addDoc(userOrgsCol(userId), {
+    userId,
+    name,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
 /** Realtime-Listener für den Editor */
 export function subscribeToBlocks(
+
   orgId: string,
   serviceId: string,
   onUpdate: (blocks: ServiceBlock[]) => void

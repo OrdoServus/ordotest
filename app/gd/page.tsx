@@ -1,21 +1,63 @@
 'use client';
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../AuthContext";
 import { useEffect, useState } from "react";
+import type { Org } from './index';
+import { getUserOrgs, createOrg, createService } from './index';
+
 
 export default function GdLanding() {
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [orgs, setOrgs] = useState<Org[]>([]);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!user) {
       router.push("/login");
       return;
     }
+    loadOrgs();
     setLoading(false);
   }, [user, router]);
+
+  const loadOrgs = async () => {
+    if (!user) return;
+    const userOrgs = await getUserOrgs(user.uid);
+    setOrgs(userOrgs);
+  };
+
+  const handleNewService = async () => {
+    if (!user) return;
+    setCreating(true);
+    try {
+      // Use first org or create default
+      let orgId: string;
+      if (orgs.length === 0) {
+        orgId = await createOrg(user.uid, 'Meine Organisation');
+      } else {
+        orgId = orgs[0].id;
+      }
+
+      // Create service
+      const today = new Date();
+      const dateStr = today.toISOString().split('T')[0];
+      const serviceId = await createService(orgId, user.uid, {
+        title: 'Neuer Gottesdienst',
+        date: dateStr,
+        location: '',
+      });
+
+      router.push(`/gd/${orgId}/${serviceId}`);
+    } catch (error) {
+      console.error('Fehler beim Erstellen:', error);
+      alert('Fehler beim Erstellen des Gottesdienstes');
+    } finally {
+      setCreating(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -38,11 +80,22 @@ export default function GdLanding() {
       </div>
 
       <div style={styles.cta}>
-        <Link href="/gd/neu" style={styles.ctaBtn}>
-          Neuen Gottesdienst erstellen
-        </Link>
-        <p style={styles.ctaNote}>Erstelle deine erste Organisation & Gottesdienst</p>
+        <button 
+          onClick={handleNewService} 
+          disabled={creating}
+          style={{
+            ...styles.ctaBtn,
+            backgroundColor: creating ? '#bdc3c7' : '#3498db',
+            cursor: creating ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {creating ? 'Erstelle...' : 'Neuen Gottesdienst erstellen'}
+        </button>
+        <p style={styles.ctaNote}>
+          {orgs.length === 0 ? 'Erstelle deine erste Organisation & Gottesdienst' : `${orgs.length} Organisation(en)`}
+        </p>
       </div>
+
 
       <div style={styles.features}>
         <div style={styles.feature}>
@@ -63,8 +116,9 @@ export default function GdLanding() {
       </div>
 
       <footer style={styles.footer}>
-        <Link href="/dashboard" style={styles.backLink}>← Zurück zum Dashboard</Link>
+        <a href="/dashboard" style={styles.backLink}>← Zurück zum Dashboard</a>
       </footer>
+
     </div>
   );
 }
