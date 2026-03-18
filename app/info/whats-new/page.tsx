@@ -1,8 +1,8 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import Footer from '../Footer';
+import InfoLayout from '../InfoLayout';
+import { colors, fontSizes, spacing, radius, sharedStyles } from '../theme';
 
-// Define the structure of a changelog entry
 interface ChangelogEntry {
   version: string;
   date: string;
@@ -10,128 +10,70 @@ interface ChangelogEntry {
   changes: string[];
 }
 
-const WhatsNewPage: React.FC = () => {
+export default function WhatsNewPage() {
   const [updates, setUpdates] = useState<ChangelogEntry[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchChangelog = async () => {
       try {
-        // Fetch data from GitHub releases API
         const response = await fetch('https://api.github.com/repos/ordoservus/ordoservus/releases');
-        if (!response.ok) {
-          throw new Error(`Fehler beim Laden von GitHub. Status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Fehler beim Laden von GitHub. Status: ${response.status}`);
         const data = await response.json();
-        
-        // Transform GitHub release data to our format
-        const transformedData: ChangelogEntry[] = data.map((release: any) => ({
+        const transformed: ChangelogEntry[] = data.map((release: any) => ({
           version: release.tag_name.replace('v', ''),
           date: new Date(release.published_at).toLocaleDateString('de-DE'),
           title: release.name || release.tag_name,
-          changes: release.body ? release.body.split('\n').filter((line: string) => line.trim()) : []
+          changes: release.body ? release.body.split('\n').filter((l: string) => l.trim()) : [],
         }));
-        
-        setUpdates(transformedData);
+        setUpdates(transformed);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Ein unbekannter Fehler ist aufgetreten');
       } finally {
         setLoading(false);
       }
     };
-
     fetchChangelog();
   }, []);
 
   return (
-    <>
-      <div style={styles.container}>
-        <h1 style={styles.mainTitle}>Was ist neu in OrdoServus?</h1>
-        
-        {loading && <p>Lade Neuigkeiten...</p>}
-        {error && <p style={styles.errorText}>{error}</p>}
+    <InfoLayout title="Was ist neu?" backHref="/info">
+      <header style={sharedStyles.pageHeader}>
+        <h1 style={sharedStyles.h1}>Was ist neu in OrdoServus?</h1>
+      </header>
 
-        {!loading && !error && (
-          <div style={styles.timeline}>
-            {updates.map((entry) => (
-              <article key={entry.version} style={styles.entry}>
-                <header style={styles.entryHeader}>
-                  <span style={styles.date}>{entry.date}</span>
-                  <h2 style={styles.versionTitle}>v{entry.version}: {entry.title}</h2>
-                </header>
-                <ul style={styles.changeList}>
-                  {entry.changes.map((change, index) => (
-                    <li key={index} style={styles.changeItem}>{change}</li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
-        )}
-      </div>
-      <Footer />
-    </>
+      {loading && <p style={{ textAlign: 'center', color: colors.textMuted }}>Lade Neuigkeiten...</p>}
+      {error && <p style={sharedStyles.errorText}>{error}</p>}
+
+      {!loading && !error && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+          {updates.map((entry) => (
+            <article key={entry.version} style={timelineEntryStyle}>
+              <header style={{ marginBottom: spacing.sm }}>
+                <span style={{ fontSize: fontSizes.sm, color: colors.textMuted }}>{entry.date}</span>
+                <h2 style={{ fontSize: fontSizes.xl, fontWeight: '600', color: colors.primary, marginTop: '4px' }}>
+                  v{entry.version}: {entry.title}
+                </h2>
+              </header>
+              <ul style={sharedStyles.ul}>
+                {entry.changes.map((change, i) => (
+                  <li key={i} style={{ fontSize: fontSizes.base, lineHeight: '1.6', color: colors.text, marginBottom: '8px' }}>
+                    {change}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      )}
+    </InfoLayout>
   );
-};
+}
 
-// --- STYLES (largely unchanged, using project conventions) ---
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    maxWidth: '800px',
-    margin: '0 auto',
-    padding: '40px 20px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-  },
-  mainTitle: {
-    fontSize: '2.5rem',
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: '40px',
-    textAlign: 'center',
-  },
-  errorText: {
-    color: '#e74c3c',
-    textAlign: 'center',
-    padding: '20px',
-    backgroundColor: '#fff5f5',
-    borderRadius: '8px',
-  },
-  timeline: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '30px',
-  },
-  entry: {
-    borderLeft: '4px solid #007bff',
-    padding: '15px 20px',
-    backgroundColor: '#f8f9fa',
-    borderRadius: '0 8px 8px 0',
-  },
-  entryHeader: {
-    marginBottom: '12px',
-  },
-  date: {
-    fontSize: '0.85rem',
-    color: '#6c757d',
-  },
-  versionTitle: {
-    fontSize: '1.5rem',
-    fontWeight: '600',
-    color: '#0056b3',
-    marginTop: '4px',
-  },
-  changeList: {
-    listStyle: 'disc',
-    paddingLeft: '20px',
-    margin: 0,
-  },
-  changeItem: {
-    fontSize: '1rem',
-    lineHeight: '1.6',
-    color: '#495057',
-    marginBottom: '8px',
-  },
+const timelineEntryStyle: React.CSSProperties = {
+  borderLeft: `4px solid ${colors.accent}`,
+  padding: `15px ${spacing.md}`,
+  backgroundColor: colors.bgPage,
+  borderRadius: `0 ${radius.md} ${radius.md} 0`,
 };
-
-export default WhatsNewPage;
