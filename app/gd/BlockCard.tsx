@@ -28,7 +28,7 @@ export function BlockCard({
   const [isDragOver, setIsDragOver] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
-  const def = BLOCK_DEFS[block.type as keyof typeof BLOCK_DEFS]
+  const def = BLOCK_DEFS[block.type]
   if (!def) return null
 
   const handleFieldChange = (key: string, value: string) => {
