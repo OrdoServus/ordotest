@@ -1,9 +1,3 @@
-/**
- * Firebase Repository – alle Firestore-Aufrufe zentral hier.
- * Wenn du später zu Supabase/anderen DB wechselst, tauschst du
- * nur diese Datei aus. Der Rest der App bleibt unverändert.
- */
-
 import {
   collection, doc, getDocs, getDoc, addDoc, updateDoc,
   deleteDoc, query, orderBy, serverTimestamp, writeBatch,
