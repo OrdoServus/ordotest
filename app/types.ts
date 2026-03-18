@@ -1,6 +1,6 @@
 export interface ServiceBlock {
   id: string
-  type: string
+  type: BlockType
   position: number
   data: Record<string, any>
   visibleRoles: UserRole[]
