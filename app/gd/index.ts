@@ -9,8 +9,23 @@ import {
   deleteDoc, query, orderBy, serverTimestamp, writeBatch,
   onSnapshot, type Unsubscribe,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import type { Service, ServiceBlock, UserRole } from '@/types'
+import { db } from '../firebase/firebaseClient'
+export type Service = {
+  id: string
+  orgId: string
+  createdBy: string
+  status: 'draft' | 'published'
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type ServiceBlock = {
+  id: string
+  position: number
+  visibleRoles: UserRole[]
+}
+
+export type UserRole = 'admin' | 'editor' | 'viewer'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
