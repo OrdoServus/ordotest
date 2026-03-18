@@ -27,8 +27,15 @@ const Navbar: React.FC = () => {
             <FileText size={18} style={{ marginRight: '8px' }} />
             Notizen
           </Link>
-          <Link href="/kalender" style={getLinkClass('/kalender')}>\n            <Calendar size={18} style={{ marginRight: '8px' }} />\n            Kalender\n          </Link>\n          <Link href="/gd" style={getLinkClass('/gd')}>\n            <Church size={18} style={{ marginRight: '8px' }} />\n            Gottesdienste\n          </Link>\n        </div>
-
+          <Link href="/kalender" style={getLinkClass('/kalender')}>
+            <Calendar size={18} style={{ marginRight: '8px' }} />
+            Kalender
+          </Link>
+          <Link href="/gd" style={getLinkClass('/gd')}>
+            <Church size={18} style={{ marginRight: '8px' }} />
+            Gottesdienste
+          </Link>
+        </div>
       </div>
       <ProfileMenu /> 
     </nav>
