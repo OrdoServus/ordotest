@@ -1,6 +1,6 @@
-import type { BlockDef } from '@/types'
+import type { BlockDef, BlockType } from '../types'
 
-export const BLOCK_DEFS: Record<string, BlockDef> = {
+export const BLOCK_DEFS: Record<BlockType, BlockDef> = {
   lied: {
     type: 'lied',
     label: 'Lied',
@@ -78,9 +78,9 @@ export const BLOCK_DEFS: Record<string, BlockDef> = {
   },
 }
 
-export const BLOCK_TYPES = Object.values(BLOCK_DEFS)
+export const BLOCK_TYPES = Object.values(BLOCK_DEFS) as BlockDef[]
 
-export const ROLE_LABELS: Record<string, string> = {
+export const ROLE_LABELS: Record<UserRole, string> = {
   pfarrer:  'Pfarrer',
   organist: 'Organist',
   sakristan:'Sakristan',
@@ -88,7 +88,7 @@ export const ROLE_LABELS: Record<string, string> = {
   gemeinde: 'Gemeinde',
 }
 
-export const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
+export const ROLE_COLORS: Record<UserRole, { bg: string; text: string }> = {
   pfarrer:  { bg: '#FAEEDA', text: '#854F0B' },
   organist: { bg: '#EAF3DE', text: '#3B6D11' },
   sakristan:{ bg: '#E6F1FB', text: '#185FA5' },
