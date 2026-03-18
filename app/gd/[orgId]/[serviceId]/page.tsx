@@ -89,13 +89,16 @@ export default function ServiceEditorPage() {
   })()
 
   return (
-    <ServiceEditor
-      orgId={orgId!}
-      serviceId={serviceId!}
-      serviceTitle={service.title || 'Neuer Gottesdienst'}
-      serviceDate={serviceDate}
-      serviceLocation={service.location || ''}
-    />
+    <div className="min-h-screen bg-stone-50">
+      <div className="max-w-6xl mx-auto px-6 py-8"></div>
+        <ServiceEditor
+          orgId={orgId!}
+          serviceId={serviceId!}
+          serviceTitle={service.title || 'Neuer Gottesdienst'}
+          serviceDate={serviceDate}
+          serviceLocation={service.location || ''}
+        />
+      </div>
   )
 }
 
